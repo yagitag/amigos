@@ -5,15 +5,13 @@
 [SPIDER]
   log_file = ${COMMON:log_dir}/spider.log
   pid_file = ${COMMON:work_dir}/spider_pid
-  workers_cnt = 30
+  workers_cnt = 50
   min_words_cnt = 250 #если меньше, прекращаем рекурсивно обрабатывать похожие видео
   check_workers_period = 1000 #обрабатываем столько страниц, и проверяем worker'ов
-  max_not_handled_results = 1000 #если больше, то убьем 1 worker'а
-  max_not_handled_tasks = 1000 #если больше, то добавим 1 worker'а
 
 [WORKER]
-  pages_dump = ${COMMON:WORK_DIR}/pages
-  subs_dump = ${COMMON:WORK_DIR}/subs
+  pages_dump = ${COMMON:WORK_DIR}/data/pages
+  subs_dump = ${COMMON:WORK_DIR}/data/subs
   request_timeout = 120
   max_tries_to_get_page = 5 #потом забиваем на страничку
 

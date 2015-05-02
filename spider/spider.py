@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import uids_storage
+import log_system
 import worker
 
 import configparser
 import signal
 import queue
 import zlib
-import time
 import os
 
 class Spider:
@@ -28,26 +28,30 @@ class Spider:
       os.makedirs(common_config['log_dir'])
     #
     spider_config = config['SPIDER']
+    self.log = log_system.Log(spider_config['log_file'])
     self.workers_cnt = int(spider_config['workers_cnt'])
     self.check_workers_period = int(spider_config['check_workers_period'])
-    self.max_not_handled_tasks = int(spider_config['max_not_handled_tasks'])
-    self.max_not_handled_results  = int(spider_config['max_not_handled_results'])
     with open(spider_config['pid_file'], 'w') as output:
       output.write(str(os.getpid()))
     #
     self.uids = uids_storage.UIdsStorage(**config['UID_STORAGE'])
     #
-    worker.Worker.configure(**config['WORKER'])
+    worker_config = config['WORKER']
+    self.worker_dirs = [worker_config['pages_dump'], worker_config['subs_dump']]
+    worker.configure(**worker_config)
     self.workers = []
     self.putWorkersInOrder()
     #
     self.tasks_file = config['EXTERNAL_WORKER']['tasks_file']
+    self.proxies_file = config['EXTERNAL_WORKER']['proxies_file']
+    self.loadTasks()
+    self.loadProxies()
+
+
+  def loadTasks(self):
     with open(self.tasks_file, 'r') as fd:
       tasks = (line.strip() for line in fd)
       self.setTasks(tasks)
-    #
-    self.proxies_file = config['EXTERNAL_WORKER']['proxies_file']
-    self.loadProxies()
 
 
   def putWorkersInOrder(self):
@@ -89,14 +93,8 @@ class Spider:
       isAlive = self.handleResult()
       handled_pages_tmp_cnt += 1
       if handled_pages_tmp_cnt == self.check_workers_period:
-        #if self.results_queue.qsize() > self.max_not_handled_results:
-        #  self.logPrint('There is too much workers. Kill one')
-        #  self.workers_cnt -= 1
-        #elif self.tasks_queue.qsize() > self.max_not_handled_tasks:
-        #  self.logPrint('There is too little worker. Create one')
-        #  self.workers_cnt += 1
         self.putWorkersInOrder()
-        self.logPrint('Hooray!!! I have handled 1000 more pages :)', 'Total count is', len(self.uids))
+        self.log.write('Hooray!!! I have handled 1000 more pages :) Total count is ' + str(len(self.uids)))
         handled_pages_tmp_cnt = 0
 
 
@@ -105,23 +103,19 @@ class Spider:
     min_words_cnt = 125 * 2 # avg_words_cnt_per_minute * min_video_time
     try:
       data = self.results_queue.get()
+      self.log.write('{0}: wc - {1}, rvc - {2}'.format(data['uid'], data['words_cnt'], len(data['new_tasks'])))
       if data['words_cnt'] > min_words_cnt:
         self.uids.commit(zlib.crc32(data['uid'].encode()))
         self.setTasks(data['new_tasks'])
     except TypeError:
-      self.logPrint('Saving...')
+      self.log.write('Saving...')
       hasToContinue = False
       self.uids.flushToDisk()
-    #print(data)
     return hasToContinue
 
 
-  def logPrint(self, info):
-    print("{0}: {1}".format(time.ctime(), info))
-
-
   def handleSIGINT(self, sig_num, frame):
-    self.logPrint('OK. LOADING NEW PROXIES')
+    self.log.write('OK. LOADING NEW PROXIES')
     workers_cnt = self.workers_cnt
     #выгружаем задачи
     tmp_tasks = []
@@ -130,24 +124,26 @@ class Spider:
     #убиваем всех рабочих
     self.workers_cnt = 0
     self.putWorkersInOrder()
-    for worker in self.workers:
-      worker.join()
+    for w_thread in self.workers:
+      w_thread.join()
     #очищаем и загружаем прокси
     while not self.proxies_queue.empty():
       self.proxies_queue.get()
     self.loadProxies()
     #загружаем задачи
+    self.loadTasks()
     self.setTasks(tmp_tasks)
-    with open(self.tasks_file, 'r') as fd:
-      tasks = fd.readlines()
-      self.setTasks(tasks)
+    #ротируем логи
+    self.log.rotateLogs()
+    #ротируем директории рабочих
+    worker.createEmptyDirs(*self.worker_dirs)
     #запускаем рабочих
     self.workers_cnt = workers_cnt
     self.putWorkersInOrder()
 
 
   def handleSIGTERM(self, sig_num, frame):
-    self.logPrint('OK. FINISHING')
+    self.log.write('OK. FINISHING')
     #очищаю список задач
     with open(self.tasks_file, 'w') as output:
       while not self.tasks_queue.empty():
@@ -156,6 +152,8 @@ class Spider:
     workers_cnt = self.workers_cnt
     self.workers_cnt = 0
     self.putWorkersInOrder()
+    for worker in self.workers:
+      worker.join()
     self.results_queue.put('finish')
 
 

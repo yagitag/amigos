@@ -2,9 +2,37 @@
 
 import threading
 import requests
+import datetime
 import socket
 import queue
 import os
+
+
+def configure(pages_dump, subs_dump, request_timeout, max_tries_to_get_page):
+  createEmptyDirs(pages_dump, subs_dump)
+  Worker.pages_dump = pages_dump
+  Worker.subs_dump = subs_dump
+  Worker.request_timeout = int(request_timeout)
+  Worker.max_tries_to_get_page = int(max_tries_to_get_page)
+
+
+def createEmptyDirs(*dirs):
+  for d in dirs:
+    createEmptyDir(d)
+
+
+def createEmptyDir(dir_name):
+  if os.path.exists(dir_name):
+    new_dir_name = dir_name + '_' + datetime.datetime.now().strftime("%Y-%m-%d")
+    if os.path.exists(new_dir_name):
+      files = os.listdir(dir_name)
+      for f in files:
+        os.rename(dir_name + '/' + f, new_dir_name + '/' + f)
+      return
+    else:
+      os.rename(dir_name, new_dir_name)
+  os.makedirs(dir_name)
+
 
 
 class GetHtmlError(Exception):
@@ -12,13 +40,6 @@ class GetHtmlError(Exception):
 
 
 class Worker(threading.Thread):
-  def configure(pages_dump, subs_dump, request_timeout, max_tries_to_get_page):
-    if not os.path.exists(pages_dump): os.makedirs(pages_dump)
-    if not os.path.exists(subs_dump): os.makedirs(subs_dump)
-    Worker.pages_dump = pages_dump
-    Worker.subs_dump = subs_dump
-    Worker.request_timeout = int(request_timeout)
-    Worker.max_tries_to_get_page = int(max_tries_to_get_page)
 
   def __init__(self, task_queue, result_queue, proxies_queue):
     self.task_queue = task_queue
@@ -34,16 +55,15 @@ class Worker(threading.Thread):
       if task != 'finish':
         try:
           html_page = self.getHtmlText(watch_url.format(task), 'ytplayer', proxy)
-          try: (param_for_subs, related_videos) = self.extractInfo(html_page)
+          try:
+            (param_for_subs, related_videos) = self.extractInfo(html_page)
+            (subs, words_cnt) = self.getSubs(param_for_subs, proxy)
           except ValueError: continue
-          (subs, words_cnt) = self.getSubs(param_for_subs, proxy)
           result = {'uid': task, 'new_tasks': related_videos, 'words_cnt': words_cnt}
           self.result_queue.put(result)
           self.save(task, html_page, subs)
-          print(task + ': success')
         except GetHtmlError:
           self.task_queue.put(task)
-          print(task + ': failed')
       else: break
 
   def getNextProxy(self):
@@ -63,13 +83,10 @@ class Worker(threading.Thread):
     result = ''
     if not proxy: proxy = {'http': self.getNextProxy()}
     for proxies_cnt in range(Worker.max_tries_to_get_page):
-      #print(url, proxy)
       try:
         result = requests.get(url, proxies = proxy, timeout = Worker.request_timeout).text
         if check_text in result: break
-      except requests.ConnectionError: pass #print("CONNECTION_ERROR")
-      except (requests.Timeout, socket.timeout): pass #print('TIMEOUT')
-      except Exception as exception: print(exception)
+      except Exception: pass
       proxy['http'] = self.getNextProxy()
     if not result:
       raise GetHtmlError
@@ -171,18 +188,24 @@ if __name__ == '__main__':
   config = configparser.ConfigParser(interpolation = configparser.ExtendedInterpolation(), inline_comment_prefixes = ('#'))
   config.read('config')
 
-  Worker.configure(**config['WORKER'])
+  #configure(**config['WORKER'])
   w = Worker(None, None, None)
-  downloaded_tasks = os.listdir(Worker.pages_dump)
+  #with open('/home/ag/yt_dir/tasks_khan.txt', 'r') as fd: downloaded_tasks = fd.readlines()
+  #downloaded_tasks = os.listdir(Worker.pages_dump)
+  downloaded_tasks = ['1lF0vgnXgbM']
 
   #with open(config['EXTERNAL_WORKER']['tasks_file'], 'r') as fd:
     #for line in fd:
       #task = line.strip()
   for task in downloaded_tasks:
-    with open(Worker.pages_dump + '/' + task, 'r') as tmp_fd:
-      html_page = tmp_fd.read()
-      try: (p, new_tasks) = w.extractInfo(html_page)
-      except ValueError: continue
-      for new_task in new_tasks:
-        if new_task not in downloaded_tasks:
-          print(new_task)
+    try:
+      with open('/home/ag/yt_dir/data/pages/' + task.strip(), 'r') as tmp_fd:
+      #with open(Worker.pages_dump + '/' + task.strip(), 'r') as tmp_fd:
+        html_page = tmp_fd.read()
+        try: (p, new_tasks) = w.extractInfo(html_page)
+        except ValueError: continue
+        print(p)
+        for new_task in new_tasks:
+          if new_task not in downloaded_tasks:
+            print(new_task)
+    except Exception as e: print(e)
