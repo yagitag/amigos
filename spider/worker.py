@@ -76,7 +76,7 @@ class Worker(threading.Thread):
       output.write(html_page)
     with open(Worker.subs_dump + '/' + task, 'w') as output:
       for (lang, sub) in subs.items():
-        output.write(lang + '\n')
+        output.write('[' + lang + ']')
         output.write(sub)
 
   def getHtmlText(self, url, check_text, proxy = None):
@@ -86,6 +86,7 @@ class Worker(threading.Thread):
       try:
         result = requests.get(url, proxies = proxy, timeout = Worker.request_timeout).text
         if check_text in result: break
+        else: result = ''
       except Exception: pass
       proxy['http'] = self.getNextProxy()
     if not result:
@@ -117,16 +118,19 @@ class Worker(threading.Thread):
       if lang in necessary_langs:
         if not name:
           sub_url = api_tdt_pfx + auto_sub_sfx.format(params['asr_langs'], params['expire'], params['signature'], params['v'], lang)
+          sub_info = 'auto'
         else:
           v_id = self.getTagParamVal('id', track)
           sub_url = api_tdt_pfx + orig_sub_sfx.format(params['v'], v_id, name, lang)
-        sub_text = self.getHtmlText(sub_url, 'text start', proxy)
+          sub_info = 'orig'
+        sub_text = '[{0}][{1}]\n{2}\n'.format(sub_info, sub_url, self.getHtmlText(sub_url, 'text start', proxy))
         result[lang] = sub_text
         downloaded_sub_cnt += 1
     if 0 < downloaded_sub_cnt < len(necessary_langs):
       for lang in necessary_langs:
         if not result[lang]:
-          sub_text = self.getHtmlText(sub_url + '&tlang=' + lang, 'text start', proxy)
+          tran_sub_url = sub_url + '&tlang=' + lang
+          sub_text = '[tran][{0}]\n{1}\n'.format(tran_sub_url, self.getHtmlText(tran_sub_url, 'text start', proxy))
           result[lang] = sub_text
     return (result, self.countSubWords(result['en']))
 
