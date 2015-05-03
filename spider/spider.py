@@ -59,7 +59,7 @@ class Spider:
     for i in range(len(self.workers)):
       if died_cnt:
         self.workers[i - died_cnt] = self.workers[i]
-      if not self.workers[i].isAlive:
+      if not self.workers[i].is_alive():
         died_cnt += 1
     if died_cnt:
       self.workers[-died_cnt:] = []
@@ -131,7 +131,6 @@ class Spider:
       self.proxies_queue.get()
     self.loadProxies()
     #загружаем задачи
-    self.loadTasks()
     self.setTasks(tmp_tasks)
     #ротируем логи
     self.log.rotateLogs()
@@ -152,8 +151,8 @@ class Spider:
     workers_cnt = self.workers_cnt
     self.workers_cnt = 0
     self.putWorkersInOrder()
-    for worker in self.workers:
-      worker.join()
+    for w_thread in self.workers:
+      w_thread.join()
     self.results_queue.put('finish')
 
 
