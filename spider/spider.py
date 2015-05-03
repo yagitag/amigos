@@ -2,24 +2,21 @@
 
 import uids_storage
 import log_system
+import common
 import worker
 
-import configparser
 import signal
 import queue
 import zlib
 import os
 
 class Spider:
-  def __init__(self, config_path):
+  def __init__(self, config):
     signal.signal(signal.SIGINT, self.handleSIGINT)
     signal.signal(signal.SIGTERM, self.handleSIGTERM)
     self.tasks_queue = queue.Queue()
     self.results_queue = queue.Queue()
     self.proxies_queue = queue.Queue()
-    #
-    config = configparser.ConfigParser(interpolation = configparser.ExtendedInterpolation(), inline_comment_prefixes = ('#'))
-    config.read(config_path)
     #
     common_config = config['COMMON']
     if not os.path.exists(common_config['work_dir']):
@@ -158,9 +155,8 @@ class Spider:
 
 
 if __name__ == '__main__':
-  spider = Spider('config')
-  try:
-    spider.run()
+  spider = Spider(common.getConfig())
+  try: spider.run()
   except Exception as exception:
     spider.uids.flushToDisk()
     raise exception

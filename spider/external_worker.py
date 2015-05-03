@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-import urllib.request
-import configparser
 import log_system
+import common
+
+import urllib.request
 import signal
 import os
-
-
-CONFIG_FILE = 'config'
 
 
 
@@ -30,8 +28,7 @@ def noticeSpider(spider_pid):
 
 
 if __name__ == '__main__':
-  config = configparser.ConfigParser(interpolation = configparser.ExtendedInterpolation(), inline_comment_prefixes = ('#'))
-  config.read(CONFIG_FILE)
+  config = common.getConfig()
   #
   common_config = config['COMMON']
   if not os.path.exists(common_config['work_dir']):
