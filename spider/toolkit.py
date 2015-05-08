@@ -38,10 +38,11 @@ class ToolKit:
   def findSubs(self, pattern, subs = None):
     result = set()
     if not subs:
+      subs = []
       for subs_dir in glob.glob(self.config['WORKER']['subs_dump'] + '*'):
         sub_names = os.listdir(subs_dir)
         for sub_name in sub_names:
-          subs.append(FilePath(subs_dir, sub))
+          subs.append(FilePath(subs_dir, sub_name))
     for sub in subs:
       try:
         with open(str(sub), 'r') as fd:
