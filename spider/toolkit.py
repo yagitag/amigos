@@ -35,15 +35,20 @@ class ToolKit:
         out_fd.write(uid_bytes)
 
 
-  def findSubs(self, pattern):
+  def findSubs(self, pattern, subs = None):
     result = set()
-    for subs_dir in glob.glob(self.config['WORKER']['subs_dump'] + '*'):
-      subs = os.listdir(subs_dir)
-      for sub in subs:
-        sub = FilePath(subs_dir, sub)
+    if not subs:
+      for subs_dir in glob.glob(self.config['WORKER']['subs_dump'] + '*'):
+        sub_names = os.listdir(subs_dir)
+        for sub_name in sub_names:
+          subs.append(FilePath(subs_dir, sub))
+    for sub in subs:
+      try:
         with open(str(sub), 'r') as fd:
           if fd.read().find(pattern) != -1:
             result.add(sub)
+      except Exception:
+        print('There is bad file:', sub)
     return result
 
 
@@ -61,6 +66,7 @@ class ToolKit:
         if pattern.lower() in parser.getDescription(text).lower(): val |= 0b01
         result.append((val, sub.file_name))
     return list(sorted(result, key = lambda x: x[0], reverse = True))
+
 
   def getDocs(self, pattern):
     subs = self.findSubs(pattern)
