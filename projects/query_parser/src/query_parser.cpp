@@ -5,6 +5,8 @@
 #include "../../../include/common/porter2_stemmer.h"
 #include "../../../include/common/loc.hpp"
 
+using namespace std;
+
 int main()
 {
     string str = "   !@a#$%^&*()_-+= a_a `~` `ёёё ййй <>?,./\\\'|\" Раз ДВА    324 !!,..1.1.23 ,,//три    ";
