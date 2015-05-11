@@ -3,6 +3,7 @@
 
 #include<string>
 #include<set>
+#include<vector>
 
 #include<boost/tokenizer.hpp>
 #include<boost/algorithm/string.hpp>

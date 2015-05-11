@@ -1,6 +1,8 @@
 #ifndef __LOCALE__HPP__
 #define __LOCALE__HPP__
 
+#include <locale> 
+
 namespace Common {
 
 bool g_locale_init = false;

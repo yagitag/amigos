@@ -4,12 +4,16 @@
 #include <string>
 #include <locale>
 #include <cstdlib>
+#include <vector>
+#include <string>
+#include <set>
 
 #include <algorithm>
 #include <functional>
 
 #include "loc.hpp"
 #include "porter2_stemmer.h"
+#include "tokenizer.hpp"
 
 using namespace std;
 
