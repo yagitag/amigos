@@ -89,7 +89,7 @@ def getTitle(text):
 
 def convertIntoText(text):
   text = text.replace('<br />', '\n')
-  text = re.sub('<a.*?>(.*?)</a>', '\g<1>', text)
+  text = re.sub('<a.*?href="(.*?)".*?</a>', '\g<1>', text)
   text = html.unescape(text)
   return text
 
@@ -141,7 +141,7 @@ def getUserInfo(text):
   result = {}
   start = text.index('<div class="yt-user-info">') + len('<div class="yt-user-info">')
   (start, end) = search(text, '>', '</a>', start)
-  result['name'] = html.unescape(text[start:end])
+  result['author'] = html.unescape(text[start:end])
   start = text.find('yt-subscription-button-subscriber-count-branded-horizontal', end)
   if start != -1:
     (start, end) = search(text, '>', '<', start)
@@ -175,5 +175,9 @@ def parseSub(text, langs = ('ru', 'en')):
   for (info, data) in re.findall('((?:\[[^\]]*\]){3})\s*<.*?>\s*<transcript>(.*?)</transcript>', text, re.S):
     lang = info[1:3]
     result[lang]['type'] = info[5:9]
-    result[lang]['data'] = data
+    data = data.replace('\n', '')
+    data = data.replace('&amp;', '&')
+    data = data.replace('">', '"><![CDATA[')
+    data = data.replace('</text>', ']]></text>')
+    result[lang]['data'] = html.unescape(data)
   return result
