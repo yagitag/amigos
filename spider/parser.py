@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import html
+import re
+
 
 def extractInfo(html_page):
   ttsurl_val = getTTSURL(html_page)
@@ -80,11 +83,97 @@ def countSubWords(sub_xml):
 def getTitle(text):
   start = text.index('yt watch-title-container')
   (start, end) = search(text, 'title="', '"', start)
-  return text[start:end]
+  return html.unescape(text[start:end])
+
+
+
+def convertIntoText(text):
+  text = text.replace('<br />', '\n')
+  text = re.sub('<a.*?>(.*?)</a>', '\g<1>', text)
+  text = html.unescape(text)
+  return text
 
 
 
 def getDescription(text):
   start = text.index('id="eow-description"')
   (start, end) = search(text, '>', '</p>', start)
-  return text[start:end]
+  result = text[start:end]
+  result = convertIntoText(result)
+  return result
+
+
+
+def getMetaInfo(text):
+  result = {}
+  (start, end) = search(text, '<meta itemprop="height" content="', '">')
+  result['quality'] = int(text[start:end])
+  (start, end) = search(text, '<meta itemprop="isFamilyFriendly" content="', '">', end)
+  result['is_family_friendly'] = text[start:end]
+  (start, end) = search(text, '<meta itemprop="interactionCount" content="', '">', end)
+  result['views_cnt'] = int(text[start:end])
+  (start, end) = search(text, '<meta itemprop="datePublished" content="', '">', end)
+  result['date'] = text[start:end]
+  (start, end) = search(text, '<meta itemprop="genre" content="', '">', end)
+  result['type'] = html.unescape(text[start:end])
+  return result
+
+
+
+def _getLikeByType(text, ltype, start = 0):
+  start = text.index('like-button-renderer-' + ltype + '-button-unclicked')
+  (start, end) = search(text, '<span class="yt-uix-button-content">', '</span>', start)
+  try: result = int(re.sub('[\s,.]', '', text[start:end]))
+  except ValueError: result = 0
+  return (result, end)
+
+
+
+def getLikes(text):
+  result = {}
+  (result['like'], end_pos) = _getLikeByType(text, 'like')
+  (result['dislike'], end_pos)  = _getLikeByType(text, 'dislike')
+  return result
+
+
+
+def getUserInfo(text):
+  result = {}
+  start = text.index('<div class="yt-user-info">') + len('<div class="yt-user-info">')
+  (start, end) = search(text, '>', '</a>', start)
+  result['name'] = html.unescape(text[start:end])
+  start = text.find('yt-subscription-button-subscriber-count-branded-horizontal', end)
+  if start != -1:
+    (start, end) = search(text, '>', '<', start)
+    result['subscribers_cnt'] = int(re.sub('[\s,.]', '', text[start:end]))
+  else:
+    result['subscribers_cnt'] = '0'
+  return result
+
+
+
+def getLoudness(text):
+  try:
+    (start, end) = search(text, '"loudness":"', '"')
+    return text[start:end]
+  except ValueError:
+    return ''
+
+
+
+def getKeywords(text):
+  try:
+    (start, end) = search(text, '"keywords":"', '"')
+    return text[start:end]
+  except ValueError:
+    return ''
+
+
+def parseSub(text, langs = ('ru', 'en')):
+  end = 0
+  result = {lang: {} for lang in langs}
+  for (info, data) in re.findall('((?:\[[^\]]*\]){3})\s*<.*?>\s*<transcript>(.*?)</transcript>', text, re.S):
+    lang = info[1:3]
+    result[lang]['type'] = info[5:9]
+    result[lang]['data'] = data
+  return result
