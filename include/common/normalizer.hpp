@@ -15,9 +15,9 @@
 #include "porter2_stemmer.h"
 #include "tokenizer.hpp"
 
-using namespace std;
-
 namespace Common {
+
+using namespace std;
 
 string toLower( const string &str )
 {
