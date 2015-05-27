@@ -104,10 +104,11 @@ def getDescription(text):
 
 
 
-def getMetaInfo(text):
+def getMetaInfo(text, info_imag):
   result = {}
   (start, end) = search(text, '<meta itemprop="height" content="', '">')
-  result['quality'] = int(text[start:end])
+  quality = int(text[start:end])
+  result['quality'] = info_imag['qualities'].setdefault(quality, len(info_imag['qualities']))
   (start, end) = search(text, '<meta itemprop="isFamilyFriendly" content="', '">', end)
   result['is_family_friendly'] = text[start:end]
   (start, end) = search(text, '<meta itemprop="interactionCount" content="', '">', end)
@@ -115,7 +116,8 @@ def getMetaInfo(text):
   (start, end) = search(text, '<meta itemprop="datePublished" content="', '">', end)
   result['date'] = text[start:end]
   (start, end) = search(text, '<meta itemprop="genre" content="', '">', end)
-  result['type'] = html.unescape(text[start:end])
+  vtype = html.unescape(text[start:end])
+  result['type'] = info_imag['types'].setdefault(vtype, len(info_imag['types']))
   return result
 
 
@@ -155,9 +157,9 @@ def getUserInfo(text):
 def getLoudness(text):
   try:
     (start, end) = search(text, '"loudness":"', '"')
-    return text[start:end]
+    return -int(float(text[start:end]))
   except ValueError:
-    return ''
+    return '' 
 
 
 
@@ -170,14 +172,24 @@ def getKeywords(text):
 
 
 def parseSub(text, langs = ('ru', 'en')):
-  end = 0
   result = {lang: {} for lang in langs}
   for (info, data) in re.findall('((?:\[[^\]]*\]){3})\s*<.*?>\s*<transcript>(.*?)</transcript>', text, re.S):
     lang = info[1:3]
     result[lang]['type'] = info[5:9]
-    data = data.replace('\n', '')
+    data = data.replace('\n', ' ')
     data = data.replace('&amp;', '&')
-    data = data.replace('">', '"><![CDATA[')
-    data = data.replace('</text>', ']]></text>')
-    result[lang]['data'] = html.unescape(data)
+    end = 0
+    time_info = ''
+    try:
+      while 42:
+        (start, end) = search('<text start="', '"', end)
+        start_time = data[start:end]
+        (tmp_start, end) = search('dur="', '"', end)
+        dur_time = data[tmp_start:end]
+        data[start-len('<text start="'):end+len('">')] = ''
+        time_info += start_time + ' ' + dur_time + '\n'
+    except ValueError: pass
+    data = data.replace('</text>', '\n')
+    result[lang]['time_info'] = time_info
+    result[lang]['text'] = '<![CDATA[' + html.unescape(data) + ']]>'
   return result
