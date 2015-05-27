@@ -104,11 +104,11 @@ def getDescription(text):
 
 
 
-def getMetaInfo(text, info_imag):
+def getMetaInfo(text, info_map):
   result = {}
   (start, end) = search(text, '<meta itemprop="height" content="', '">')
-  quality = int(text[start:end])
-  result['quality'] = info_imag['qualities'].setdefault(quality, len(info_imag['qualities']))
+  quality = text[start:end]
+  result['quality'] = info_map['qualities'].setdefault(quality, len(info_map['qualities']))
   (start, end) = search(text, '<meta itemprop="isFamilyFriendly" content="', '">', end)
   result['is_family_friendly'] = text[start:end]
   (start, end) = search(text, '<meta itemprop="interactionCount" content="', '">', end)
@@ -117,7 +117,7 @@ def getMetaInfo(text, info_imag):
   result['date'] = text[start:end]
   (start, end) = search(text, '<meta itemprop="genre" content="', '">', end)
   vtype = html.unescape(text[start:end])
-  result['type'] = info_imag['types'].setdefault(vtype, len(info_imag['types']))
+  result['type'] = info_map['types'].setdefault(vtype, len(info_map['types']))
   return result
 
 
@@ -176,20 +176,10 @@ def parseSub(text, langs = ('ru', 'en')):
   for (info, data) in re.findall('((?:\[[^\]]*\]){3})\s*<.*?>\s*<transcript>(.*?)</transcript>', text, re.S):
     lang = info[1:3]
     result[lang]['type'] = info[5:9]
-    data = data.replace('\n', ' ')
-    data = data.replace('&amp;', '&')
-    end = 0
-    time_info = ''
-    try:
-      while 42:
-        (start, end) = search('<text start="', '"', end)
-        start_time = data[start:end]
-        (tmp_start, end) = search('dur="', '"', end)
-        dur_time = data[tmp_start:end]
-        data[start-len('<text start="'):end+len('">')] = ''
-        time_info += start_time + ' ' + dur_time + '\n'
-    except ValueError: pass
-    data = data.replace('</text>', '\n')
+    (text, time_info) = ('', '')
+    for m in re.finditer('<text start="(.*?)" dur="(.*?)">(.*?)</text>', data):
+      time_info += "{0} {1}\n".format(m.group(1), m.group(2))
+      text += m.group(3).replace('\n', ' ').replace('&amp;', '&') + '\n'
     result[lang]['time_info'] = time_info
-    result[lang]['text'] = '<![CDATA[' + html.unescape(data) + ']]>'
+    result[lang]['text'] = '<![CDATA[' + html.unescape(text) + ']]>'
   return result
