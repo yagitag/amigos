@@ -33,7 +33,6 @@ class Converter:
     if os.path.exists(self.info_mapping_file):
       with open(self.info_mapping_file, 'r') as fd:
         self.info_map = json.load(fd)
-      print(self.info_map)
     else:
       self.info_map = {'qualities': {}, 'types': {}}
 
