@@ -65,8 +65,8 @@ class Converter:
           self.save(info)
           os.unlink(pages_dir + '/' + uid)
           os.unlink(subs_dir + '/' + uid)
-        except ValueError:
-           print("There is problem with " + uid + sfx)
+        except (ValueError, FileNotFoundError) as e:
+           print("There is problem with " + uid + sfx + '. Reason: ' + str(e))
 
 
   def parsePage(self, text):
