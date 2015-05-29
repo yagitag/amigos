@@ -40,8 +40,9 @@ class Converter:
   def openNewFile(self, is_first_time = False):
     self.char_cnt = 0
     if not is_first_time:
-      self.char_cnt += self.fd.write('</items>')
+      self.char_cnt += self.fd.write('</items>\n')
       self.fd.close()
+      raise Exception
     self.fd = open(self.results_path + '/' + str(int(time.time())) + ".xml", 'w')
     self.char_cnt += self.fd.write('<?xml version="1.0" encoding="utf-8" ?>\n')
     self.char_cnt += self.fd.write('<items>\n')
@@ -99,9 +100,9 @@ class Converter:
 
 
   def save(self, info):
-    self.char_cnt += self.fd.write('  <item>')
+    self.char_cnt += self.fd.write('  <item>\n')
     self.char_cnt += self.writeDictAsXml(self.fd, info, 4)
-    self.char_cnt += self.fd.write('  </item>')
+    self.char_cnt += self.fd.write('  </item>\n')
     if self.char_cnt > self.flush_after:
       self.openNewFile()
 

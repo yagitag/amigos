@@ -79,17 +79,22 @@ def countSubWords(sub_xml):
   return result
 
 
+def wrapCDATA(some_data):
+  return "<![CDATA[{0}]]>".format(some_data)
+
+
 
 def getTitle(text):
   start = text.index('yt watch-title-container')
   (start, end) = search(text, 'title="', '"', start)
-  return html.unescape(text[start:end])
+  return wrapCDATA(html.unescape(text[start:end]))
 
 
 
 def convertIntoText(text):
   text = text.replace('<br />', '\n')
-  text = re.sub('<a.*?href="(.*?)".*?</a>', '\g<1>', text)
+  #text = re.sub('<a.*?href="(.*?)".*?</a>', '\g<1>', text)
+  text = re.sub('<a.*?href="(.*?)".*?</a>', '', text)
   text = html.unescape(text)
   return text
 
@@ -100,7 +105,7 @@ def getDescription(text):
   (start, end) = search(text, '>', '</p>', start)
   result = text[start:end]
   result = convertIntoText(result)
-  return result
+  return wrapCDATA(result)
 
 
 
@@ -143,7 +148,7 @@ def getUserInfo(text):
   result = {}
   start = text.index('<div class="yt-user-info">') + len('<div class="yt-user-info">')
   (start, end) = search(text, '>', '</a>', start)
-  result['author'] = html.unescape(text[start:end])
+  result['author'] = wrapCDATA(html.unescape(text[start:end]))
   start = text.find('yt-subscription-button-subscriber-count-branded-horizontal', end)
   if start != -1:
     (start, end) = search(text, '>', '<', start)
@@ -151,7 +156,6 @@ def getUserInfo(text):
   else:
     result['subscribers_cnt'] = '0'
   return result
-
 
 
 def getLoudness(text):
@@ -166,7 +170,7 @@ def getLoudness(text):
 def getKeywords(text):
   try:
     (start, end) = search(text, '"keywords":"', '"')
-    return text[start:end]
+    return wrapCDATA(text[start:end])
   except ValueError:
     return ''
 
@@ -180,6 +184,7 @@ def parseSub(text, langs = ('ru', 'en')):
     for m in re.finditer('<text start="(.*?)" dur="(.*?)">(.*?)</text>', data):
       time_info += "{0} {1}\n".format(m.group(1), m.group(2))
       text += m.group(3).replace('\n', ' ').replace('&amp;', '&') + '\n'
-    result[lang]['time_info'] = time_info
-    result[lang]['text'] = '<![CDATA[' + html.unescape(text) + ']]>'
+    result[lang]['time_info'] = wrapCDATA(time_info)
+    if lang == 'ru': text = re.sub('(и )?# 39; (\S)+', '', text)
+    result[lang]['text'] = wrapCDATA(html.unescape(text))
   return result
