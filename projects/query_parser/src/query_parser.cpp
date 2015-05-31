@@ -4,6 +4,7 @@
 #include "../../../include/common/normalizer.hpp"
 #include "../../../include/common/porter2_stemmer.h"
 #include "../../../include/common/loc.hpp"
+#include "../../../include/common/bigramer.hpp"
 
 using namespace std;
 
@@ -34,5 +35,11 @@ int main()
  //   string norm_word = Common::toLower(word);
     
  //   cout << norm_word << endl;
+
+    Common::BigRamer bgr;
+    bgr.configure("stopwords.txt");
+    cout << "bigramer:\n" << bgr.bigram2string(query) << endl;
+    string r_query = "вышел зайчик погулять по луне";
+    cout << "bigramer:\n" << bgr.bigram2string(r_query) << endl;
     return 0;
 }
