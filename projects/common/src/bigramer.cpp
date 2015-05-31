@@ -75,22 +75,18 @@ void BigRamer::configure( const string &path_to_stopwords )
     }
 }
 
-void BigRamer::bigram2vec( string &a_str, vector< string > &a_res )
+void BigRamer::bigram2vec( vector< string > &a_words, vector< string > &a_res )
 {
-    Tokenizer tkn( a_str );
-    vector < string > words;
-    tkn.get_vec(words);
-    
-    for( vector < string >::const_iterator it = words.begin(); it != words.end(); ++it )
+    for( vector < string >::const_iterator it = a_words.begin(); it != a_words.end(); ++it )
     {
         if( find(stopwords.begin(), stopwords.end(), *it) != stopwords.end() )
         {
-            if( it != words.begin() )
+            if( it != a_words.begin() )
             {
                 string bigram = make_L_bigram(*(it-1), *it);
                 a_res.push_back( bigram );
             }
-            if( it+1 != words.end() )
+            if( it+1 != a_words.end() )
             {
                 string bigram = make_R_bigram(*it, *(it+1));
                 a_res.push_back( bigram );
@@ -99,6 +95,22 @@ void BigRamer::bigram2vec( string &a_str, vector< string > &a_res )
         else 
             a_res.push_back( *it );
     }
+}
+
+void BigRamer::bigram2vec( string &a_str, vector< string > &a_res )
+{
+    Tokenizer tkn( a_str );
+    vector < string > words;
+    tkn.get_vec(words);
+
+    bigram2vec( words, a_res );
+}
+
+string BigRamer::bigram2string( vector< string > &a_words )
+{
+    vector< string > res_vec;
+    bigram2vec(a_words, res_vec);
+    return boost::algorithm::join(res_vec, " ");
 }
 
 string BigRamer::bigram2string( string &a_str )

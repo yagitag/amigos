@@ -22,8 +22,10 @@ public:
     BigRamer() {};
     void configure( const string &path_to_stopwords );
 
-    void    bigram2vec( string &a_str, vector< string > &a_res );
-    string  bigram2string( string &a_str );
+    void    bigram2vec( vector< string > &words_for_bigraming, vector< string > &a_result );
+    void    bigram2vec( string &string_for_bigraming, vector< string > &a_result );
+    string  bigram2string( vector< string > &words_for_bigraming );
+    string  bigram2string( string &string_for_bigraming );
        
 };
 
