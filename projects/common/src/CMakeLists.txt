@@ -1,2 +1,1 @@
-include_directories(${Common_SOURCE_DIR}/${INC_DIR})
-add_library(common porter2_stemmer.cpp)
+add_library(common bigramer.cpp loc.cpp normalizer.cpp porter2_stemmer.cpp tokenizer.cpp)

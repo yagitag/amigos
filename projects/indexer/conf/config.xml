@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+
+<doc_id>id</doc_id>
+
+<!-- То, что индексируем -->
+<text_zones>
+  <zone>
+    <name>title</name>
+  </zone>
+  <zone>
+    <name>description</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <path>ru,text</path>
+    <name>ru_sub</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <path>en,text</path>
+    <name>en_sub</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <name>keywords</name>
+    <optional>true</optional>
+  </zone>
+</text_zones>
+
+<!-- Для ранжирования -->
+<num_zones>
+  <zone>
+    <bitlen>32</bitlen>
+    <name>views_cnt</name>
+  </zone>
+  <zone>
+    <bitlen>20</bitlen>
+    <!-- <path>likes_cnt</path> -->
+    <name>like</name>
+  </zone>
+  <zone>
+    <bitlen>20</bitlen>
+    <!-- <path>likes_cnt</path> -->
+    <name>dislike</name>
+  </zone>
+  <zone>
+    <bitlen>2</bitlen>
+    <path>en,type</path>
+    <name>en_type</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <bitlen>2</bitlen>
+    <path>ru,type</path>
+    <name>ru_type</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <bitlen>4</bitlen>
+    <name>type</name>
+  </zone>
+  <zone>
+    <bitlen>5</bitlen>
+    <name>loudness</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <bitlen>1</bitlen>
+    <name>is_family_friendly</name>
+  </zone>
+  <zone>
+    <bitlen>3</bitlen>
+    <name>quality</name>
+  </zone>
+  <zone>
+    <bitlen>20</bitlen>
+    <name>subscribers_cnt</name>
+  </zone>
+</num_zones>
+
+<!-- Не индексируем, но сохраняем в базе документов -->
+<trash_zones>
+  <zone>
+    <path>ru,time_info</path>
+    <name>ru_sub_time</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <path>en,time_info</path>
+    <name>en_sub_time</name>
+    <optional>true</optional>
+  </zone>
+  <zone>
+    <name>date</name>
+  </zone>
+  <zone>
+    <name>video_id</name>
+  </zone>
+  <zone>
+    <name>author</name>
+  </zone>
+  <zone>
+    <name>video_id</name>
+  </zone>
+</trash_zones>
+
+<raw_data>
+  <path>/home/ssh-bro/yt_dir/res_data</path>
+</raw_data>
+
+<index_data>
+  <path>/home/ssh-bro/yt_dir/index_data</path>
+  <plain_index>plain_index.dat</plain_index>
+  <document_storage>doc_store.dat</document_storage>
+  <invert_index>invert_index.dat</invert_index>
+</index_data>
+
+<indexer_conf>
+  <max_memory_usage>1000000000</max_memory_usage>
+</indexer_conf>

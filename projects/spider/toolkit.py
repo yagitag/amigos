@@ -4,6 +4,7 @@ import common
 import parser
 
 import glob
+import zlib
 import sys
 import os
 
@@ -17,6 +18,15 @@ class FilePath:
     return (self.dir_path, self.file_name)
   def __str__(self):
     return self.dir_path + '/' + self.file_name
+
+
+def restoreUidsDbFromFile(i_file, o_file):
+  with open(i_file, 'r') as fd:
+    uids = [zlib.crc32(uid.strip().encode()) for uid in fd]
+  with open(o_file, 'wb') as fd:
+    for uid in sorted(set(uids)):
+      uid_bytes = uid.to_bytes(length = 4, byteorder = 'big')
+      fd.write(uid_bytes)
 
 
 
@@ -39,7 +49,7 @@ class ToolKit:
     result = set()
     if not subs:
       subs = []
-      for subs_dir in glob.glob(self.config['WORKER']['subs_dump'] + '*'):
+      for subs_dir in glob.glob(self.config['WORKER']['subs_dump'] + '_????-??-??'):
         sub_names = os.listdir(subs_dir)
         for sub_name in sub_names:
           subs.append(FilePath(subs_dir, sub_name))

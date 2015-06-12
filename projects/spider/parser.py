@@ -161,7 +161,7 @@ def getUserInfo(text):
 def getLoudness(text):
   try:
     (start, end) = search(text, '"loudness":"', '"')
-    return -int(float(text[start:end]))
+    return int(float(text[start:end])) + 100
   except ValueError:
     return '' 
 

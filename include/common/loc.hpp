@@ -1,7 +1,7 @@
 #ifndef __LOCALE__HPP__
 #define __LOCALE__HPP__
 
-#include <locale> 
+#include <locale>
 
 namespace Common {
 
