@@ -122,7 +122,7 @@ def getMetaInfo(text, info_map):
   result['date'] = text[start:end]
   (start, end) = search(text, '<meta itemprop="genre" content="', '">', end)
   vtype = html.unescape(text[start:end])
-  result['type'] = info_map['types'].setdefault(vtype, len(info_map['types']))
+  result['type'] = info_map['video_types'].setdefault(vtype, len(info_map['video_types']))
   return result
 
 
@@ -175,11 +175,11 @@ def getKeywords(text):
     return ''
 
 
-def parseSub(text, langs = ('ru', 'en')):
+def parseSub(text, info_map, langs = ('ru', 'en')):
   result = {lang: {} for lang in langs}
   for (info, data) in re.findall('((?:\[[^\]]*\]){3})\s*<.*?>\s*<transcript>(.*?)</transcript>', text, re.S):
     lang = info[1:3]
-    result[lang]['type'] = info[5:9]
+    result[lang]['type'] = info_map['subs_types'][info[5:9]]
     (text, time_info) = ('', '')
     for m in re.finditer('<text start="(.*?)" dur="(.*?)">(.*?)</text>', data):
       time_info += "{0} {1}\n".format(m.group(1), m.group(2))

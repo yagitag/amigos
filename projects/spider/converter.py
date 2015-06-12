@@ -34,7 +34,7 @@ class Converter:
       with open(self.info_mapping_file, 'r') as fd:
         self.info_map = json.load(fd)
     else:
-      self.info_map = {'qualities': {}, 'types': {}}
+      self.info_map = {'qualities': {}, 'video_types': {}, 'subs_types': {'auto': 0, 'tran': 1, 'orig': 2}}
 
 
   def openNewFile(self, is_first_time = False):
@@ -66,7 +66,7 @@ class Converter:
           self.save(info)
           os.unlink(pages_dir + '/' + uid)
           os.unlink(subs_dir + '/' + uid)
-        except (ValueError, FileNotFoundError) as e:
+        except (ValueError, KeyError, FileNotFoundError) as e:
            print("There is problem with " + uid + sfx + '. Reason: ' + str(e))
 
 
@@ -96,7 +96,7 @@ class Converter:
 
 
   def parseSub(self, text):
-    return parser.parseSub(text)
+    return parser.parseSub(text, self.info_map)
 
 
   def save(self, info):
