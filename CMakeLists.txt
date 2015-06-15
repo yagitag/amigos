@@ -7,6 +7,7 @@ set(CONTRIB_DIR contrib)
 set(SRC_DIR src)
 set(EXECUTABLE_OUTPUT_PATH ${Search_SOURCE_DIR}/bin)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 include_directories(${INC_DIR}/common/)
 

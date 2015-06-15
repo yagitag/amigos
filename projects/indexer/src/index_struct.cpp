@@ -1,4 +1,5 @@
-#include "index_struct.h"
+#include "index_io.hpp"
+#include "../../../include/indexer/index_struct.h"
 #include "tinyxml2_ext.hpp"
 
 #include <algorithm>
@@ -11,6 +12,8 @@
 
 
 using namespace Index;
+
+const double EPSILON = std::numeric_limits<double>::epsilon();
 
 
 
@@ -68,9 +71,10 @@ Config::Config(const std::string& configPath) {
     }
     else if (tagName == "index_data") {
       indexDataPath = getNecessaryTag(tag, "path")->GetText();
-      plainIndexFile = getNecessaryTag(tag, "plain_index")->GetText();
       invertIndexFile = getNecessaryTag(tag, "invert_index")->GetText();
-      docStoreFile = getNecessaryTag(tag, "document_storage")->GetText();
+      docStoreFile = getNecessaryTag(tag, "document_info")->GetText();
+      documentDb = getNecessaryTag(tag, "document_database")->GetText();
+      postingsFile = getNecessaryTag(tag, "postings")->GetText();
     }
     else {
       std::vector<Zone*>* pZones;
@@ -112,21 +116,39 @@ Config::~Config() {
 
 
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+Posting::Posting(std::istream& is, uint32_t seek, uint32_t size) :
+  _data(new uint16_t[size], std::default_delete<uint16_t[]>())
+{
+  is.seekg(seek, is.beg);
+  //_data.get()[2] = 3;
+  is.read(reinterpret_cast<char*>(_data.get()), size*sizeof(uint16_t));
+  begin = _data.get();
+  end = begin + size;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
 
 
 
-//Posting PostingStorage::getPosting() {
-//}
+uint16_t PostingStorage::getPostingSize(uint32_t offset) const {
+  return _postingSizes[offset];
+}
+
+
+
 std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
-  std::vector<Posting> res(entry.inZone.size());
-  uint16_t offset = entry.postingOffset;
-  uint16_t size;
-  for (size_t i = 0; i < entry.inZone.size(); ++i) {
-    if (entry.inZone[i]) {
-      size = _postingStore[offset++];
-      Posting np(&_postingStore[offset], &_postingStore[offset] + size);
-      offset += size;
+  std::vector<Posting> res(_tZonesCnt);
+  uint32_t po = entry.postingOffset;
+  uint32_t pso = entry.postingsSizeOffset;
+  for (size_t i = 0; i < _tZonesCnt; ++i) {
+    if (entry.inZone & i2mask[i]) {
+      //Posting np(&_postingStore[po], &_postingStore[po] + _postingSizes[pso]);
+      Posting np(_ifs, po, _postingSizes[pso]);
+      po += _postingSizes[pso++];
       res[i] = np;
     }
   }
@@ -135,14 +157,22 @@ std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
 
 
 
-std::ifstream& operator>>(std::ifstream& ifs, PostingStorage& ps) {
-  uint32_t curSize, size;
-  curSize = ps._postingStore.size();
-  ifs >> size;
-  ps._postingStore.resize(curSize + size); 
-  ifs.read(reinterpret_cast<char*>(&ps._postingStore[curSize]), size*sizeof(uint32_t));
-  return ifs;
+void PostingStorage::_load(const std::string& path) {
+  _ifs.open(path, std::ios::in | std::ios::binary);
+  _commonSize = readFromEnd(_ifs);
+  _ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
+  _ifs >> _postingSizes;
+  //_ifs.close();
+  //_ofs.open(path, std::ios::out | std::ios::binary);
+  //_ifs.read(reinterpret_cast<char*>(&_postingSizes[0]), size*sizeof(uint32_t));
 }
+
+
+
+//std::istream& operator>>(std::istream& ifs, Index::PostingStorage& ps) {
+//  ifs >> ps._postingStore;
+//  return ifs;
+//}
 
 
 
@@ -155,8 +185,9 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
   if (!ifs.is_open()) {
     throw Exception("Cannot open document storage");
   }
-  uint8_t nZonesCnt, tZonesCnt;
-  ifs >> nZonesCnt >> tZonesCnt;
+  uint32_t nZonesCnt, tZonesCnt;
+  readFrom(ifs, &nZonesCnt);
+  readFrom(ifs, &tZonesCnt);
   uint32_t start = 0, count = 0;
   if ( isAppendMode) {
     if (_nZones.size() != nZonesCnt) {
@@ -172,7 +203,7 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
     _tZonesWCnt.resize(tZonesCnt);
   }
   //
-  ifs >> count;
+  readFrom(ifs, &count);
   _docIds.resize(start + count);
   ifs.read(reinterpret_cast<char*>(&_docIds[start]), count*sizeof(uint32_t));
   for (auto& vec: _nZones) {
@@ -183,4 +214,16 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
     vec.resize(start + count);
     ifs.read(reinterpret_cast<char*>(&vec[start]), count*sizeof(uint16_t));
   }
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+InvertIndex::InvertIndex(const Config& config) :
+  _postingStore(config), _docStore(config)
+{
+  
 }

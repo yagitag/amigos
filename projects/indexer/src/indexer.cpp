@@ -1,15 +1,15 @@
+#include <list>
 #include <sstream>
 #include <fstream>
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 
-#include "indexer.h"
-#include "memory_control.h"
+#include "loc.hpp"
+#include "../include/indexer.h"
+#include "../include/index_io.hpp"
 #include "tokenizer.hpp"
 #include "normalizer.hpp"
 #include "porter2_stemmer.h"
-#include "loc.hpp"
-
 
 
 uint32_t stou(const std::string& str) {
@@ -23,35 +23,72 @@ uint32_t stou(const std::string& str) {
 
 
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+//EntriesComparator::EntriesComparator(const DocStorage& ds, const PostingStorage& ps) :
+//  _ds(ds), _ps(ps) { }
+//
+//
+//bool EntriesComparator::operator()(const Entry& l, const Entry& r) {
+//  uint8_t nStep = 0;
+//  for (size_t i = 0; i < l.inZone.size(); ++i) {
+//    if (l.inZone[i] < r.inZone[i])      return true;
+//    else if (l.inZone[i] > r.inZone[i]) return false;
+//    else if (l.inZone[i] == true ) {
+//      ++nStep;
+//      double ltf = _ps.getPostingSize(l.postingOffset, nStep) / _ds.getTZoneWCnt(l.docIdOffset, i);
+//      double rtf = _ps.getPostingSize(r.postingOffset, nStep) / _ds.getTZoneWCnt(r.docIdOffset, i);
+//      if (std::fabs(ltf - rtf) < EPSILON) continue;
+//      return ltf < rtf;
+//    }
+//  }
+//  return false;
+//}
+//
+//
+//
+bool compareEntries(const Index::Entry& e1, const Index::Entry& e2) {
+  return e1.docIdOffset < e2.docIdOffset;
+}
+//
+//
+//
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 
 
-void DynDocStorage::save(const std::string& dataPath) {
+DynDocStorage::DynDocStorage(const Index::Config& config) :
+  _path(config.indexDataPath + config.docStoreFile)
+{
+  std::cout << "Loading document storage..." << std::endl;
+  try {
+    _load(_path);
+  }
+  catch (Index::Exception& e) {
+    std::cout << "Catch the exception '" << e.what() << "' while loading document storage!" << std::endl;
+    std::cout << "Creating a new one." << std::endl;
+    _nZones.resize(config.numZones.size());
+    _tZonesWCnt.resize(config.textZones.size());
+  }
+}
+
+
+
+DynDocStorage::~DynDocStorage() {
   std::cout << "Saving document storage..." << std::endl;
-  std::ofstream ofs(dataPath, std::ofstream::out | std::ofstream::binary);
+  std::ofstream ofs(_path, std::ofstream::out | std::ofstream::binary);
   //
   uint32_t count = _docIds.size();
-  ofs << static_cast<uint8_t>(_nZones.size());
+  writeTo(ofs, static_cast<uint32_t>(_nZones.size()));
+  writeTo(ofs, static_cast<uint32_t>(_tZonesWCnt.size()));
+  writeTo(ofs, count);
   ofs.write(reinterpret_cast<char*>(&_docIds[0]), count*sizeof(uint32_t));
   for (auto& vec: _nZones) {
     ofs.write(reinterpret_cast<char*>(&vec[0]), count*sizeof(uint32_t));
   }
   for (auto& vec: _tZonesWCnt) {
     ofs.write(reinterpret_cast<char*>(&vec[0]), count*sizeof(uint16_t));
-  }
-}
-
-
-
-
-void DynDocStorage::load(const std::string& dataPath) {
-  std::cout << "Loading document storage..." << std::endl;
-  try {
-    _load(dataPath);
-  }
-  catch (Index::Exception& e) {
-    std::cout << "There is no document storage. Create one." << std::endl;
   }
 }
 
@@ -82,27 +119,62 @@ size_t DynDocStorage::size() {
 
 
 
-uint32_t DynPostingStore::addTokenPosting(const std::vector< std::vector<uint16_t> >& zonesPosting) {
-  for (const auto& vec: zonesPosting) {
-    _postingStore.push_back(vec.size());
-    std::copy(vec.begin(), vec.end(), std::back_inserter(_postingStore));
+DynPostingStore::DynPostingStore(const Index::Config& config) :
+  _path(config.indexDataPath + config.postingsFile)
+{
+  std::cout << "Loading posting storage..." << std::endl;
+  try {
+    _load(_path);
   }
-  return _postingStore.size();
+  catch (Index::Exception& e) {
+    std::cout << "Catch the exception '" << e.what() << "' while loading posting storage!" << std::endl;
+    std::cout << "Creating a new one." << std::endl;
+  }
+  _ifs.close();
+  _ofs.open(_path, std::ios::out | std::ios::binary);
 }
 
 
 
-size_t DynPostingStore::size() {
-  return _postingStore.size();
+DynPostingStore::~DynPostingStore() {
+  std::cout << "Saving posting storage..." << std::endl;
+  _ofs << _postingSizes;
+  writeTo(_ofs, _commonSize);
 }
 
 
 
-std::ofstream& operator<<(std::ofstream& ofs, DynPostingStore& dps) {
-  ofs << static_cast<uint32_t>(dps._postingStore.size());
-  ofs.write(reinterpret_cast<char*>(&dps._postingStore[0]), dps._postingStore.size()*sizeof(uint16_t));
-  return ofs;
+void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset, uint32_t* postingsSizeOffset) {
+  *postingOffset = _commonSize;
+  *postingsSizeOffset = _postingSizes.size();
+  for (auto& vec: zonesPosting) {
+    _postingSizes.push_back(vec.size());
+    _commonSize += _postingSizes.back();
+    _ofs.write(reinterpret_cast<char*>(&vec[0]), vec.size()*sizeof(uint16_t));
+    //std::copy(vec.begin(), vec.end(), std::back_inserter(_postingStore));
+  }
 }
+
+
+
+//size_t DynPostingStore::size() {
+//  return _postingStore.size() + _postingSizes.size();
+//}
+//
+//
+//
+//void DynPostingStore::clear() {
+//  _postingStore.clear();
+//  _postingSizes.clear();
+//}
+//
+//
+//
+//std::ostream& operator<<(std::ostream& ofs, DynPostingStore& dps) {
+//  ofs << dps._postingStore;
+//  ofs << dps._postingSizes;
+//  return ofs;
+//}
 
 
 
@@ -112,16 +184,18 @@ std::ofstream& operator<<(std::ofstream& ofs, DynPostingStore& dps) {
 
 Indexer::Indexer(const Index::Config& config, uint64_t maxMemoryUsage) :
   _maxMemSize(maxMemoryUsage), _charsCnt(0), _entriesCnt(0),
-  _config(config), _docStore(config.numZones.size(), config.textZones.size())
+  _config(config), _docStore(config), _postingStore(config)
 { }
+
+
+Indexer::~Indexer() { }
 
 
 
 void Indexer::cook() {
-  _docStore.load(_config.indexDataPath + '/' + _config.docStoreFile);
   _parseRawData();
-  //_mergeIndexes();
-  _docStore.save(_config.indexDataPath + '/' + _config.docStoreFile);
+  _flushToDisk();
+  _mergeIndexes();
 }
 
 
@@ -144,10 +218,10 @@ uint64_t estimateUMapSize(const std::unordered_map<K,V>& map) {
 
 bool Indexer::_hasSpace() {
   uint64_t curSize = estimateMapSize(_invIdx)
-    + estimateUMapSize(_statDict);
+    + estimateUMapSize(_statDict)
     + _entriesCnt * sizeof(Index::Entry)
-    + _charsCnt * sizeof(char)
-    + _postingStore.size() * sizeof(uint16_t);
+    + _charsCnt * sizeof(char);
+    //+ _postingStore.size() * sizeof(uint16_t);
   return curSize < _maxMemSize;
 }
 
@@ -216,7 +290,7 @@ void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Z
 
 
 
-void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, std::vector<bool>& inZone) {
+void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, uint8_t& inZone) {
   uint8_t zi = 0;
   uint16_t offset = 0;
   bool isNewZone = true;
@@ -227,9 +301,10 @@ void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16
     }
     if (isNewZone) {
       splitPosting.push_back(std::vector<uint16_t>());
-      inZone[zi] = true;
+      inZone |= Index::i2mask[zi];
     }
-    splitPosting[zi].push_back(val - offset);
+    splitPosting.back().push_back(val - offset);
+    isNewZone = false;
   }
 }
 
@@ -237,9 +312,9 @@ void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16
 
 void Indexer::_addToStatDict(const std::string& word) {
   auto it = _statDict.find(word);
-  if (it != _statDict.end()) {
+  if (it == _statDict.end()) {
     _charsCnt += word.size();
-    _statDict.emplace(word, 0);
+    _statDict.emplace(word, 1);
   }
   else {
     ++it->second;
@@ -253,7 +328,7 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
   std::vector<std::string> bufVec;
   std::vector<std::string> zonesVec;
   extractZones(tiElem, _config.textZones, zonesVec);
-  std::unordered_map<uint32_t,std::vector<uint16_t>> tmpDict;
+  std::unordered_map< uint32_t,std::vector<uint16_t> > tmpDict;
   for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
     Common::terminate2vec(zonesVec[zi], bufVec);
     for (auto& word : bufVec) {
@@ -264,15 +339,16 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
     }
     bufVec.clear();
   }
-  uint32_t posOfs, docOfs;
+  uint32_t docOfs, posOfs, posSOfs;
+  uint8_t inZone = 0;
   std::vector< std::vector<uint16_t> > fzpBuf;
-  std::vector<bool> inZone(_config.textZones.size());
+  //std::vector<bool> inZone(_config.textZones.size());
   for (const auto& pair : tmpDict) {
     splitByZones(pair.second, wordsCnt, fzpBuf, inZone);
-    posOfs = _postingStore.addTokenPosting(fzpBuf);
+    _postingStore.addTokenPosting(fzpBuf, &posOfs, &posSOfs);
     docOfs = _docStore.size();
-    _invIdx[pair.first].push_back(Index::Entry(docOfs, posOfs, inZone));
-    std::fill(inZone.begin(), inZone.end(), true);
+    _invIdx[pair.first].push_back(Index::Entry(docOfs, posOfs, posSOfs, inZone));
+    //std::fill(inZone.begin(), inZone.end(), false);
     fzpBuf.clear();
   }
   _entriesCnt += tmpDict.size();
@@ -304,9 +380,16 @@ std::string Indexer::_findFirstEmptyFile()
   uint32_t sfx = 0;
   std::string path;
   do {
-    path = _config.indexDataPath + '/' + _config.invertIndexFile + std::to_string(sfx++);
-  } while (!boost::filesystem::exists(path));
+    path = _config.indexDataPath + _config.invertIndexFile + '.' + std::to_string(sfx++);
+  } while (boost::filesystem::exists(path));
   return path;
+}
+
+
+
+void writeIdxItem(std::ofstream& ofs, uint32_t token, std::vector<Index::Entry>& entries) {
+  writeTo(ofs, token);
+  ofs << entries;
 }
 
 
@@ -316,20 +399,125 @@ void Indexer::_flushToDisk() {
   std::cout << "Flusing data to '" << path << "'..." << std::endl;
   std::ofstream ofs(path, std::ofstream::out | std::ofstream::binary);
   //
-  ofs << static_cast<uint32_t>(_invIdx.size());
-  for (const auto& pair: _invIdx) {
-    ofs << pair.first << static_cast<uint32_t>(pair.second.size());
-    for (const auto& entry: pair.second) {
-      ofs << entry.docIdOffset << entry.postingOffset;
-    }
+  //ofs << _postingStore;
+  //_postingStore.clear();
+  for (auto& pair: _invIdx) {
+    writeIdxItem(ofs, pair.first, pair.second);
   }
-  ofs << _postingStore;
+  writeTo(ofs, _invIdx.size());
+  _invIdx.clear();
   ofs.close();
   //
-  std::ofstream statistic_ofs(_config.indexDataPath + "/words_frequency.draw", std::ofstream::app);
+  std::ofstream statistic_ofs(_config.indexDataPath + "words_frequency.draw", std::ofstream::app);
   for (const auto& pair: _statDict) {
-    ofs << pair.first << " " << pair.second << std::endl;
+    statistic_ofs << pair.first << " " << pair.second << std::endl;
   }
+  _statDict.clear();
+}
+
+
+
+class RawIndex {
+  public:
+    RawIndex(const std::string& pathToFile) : path(pathToFile) {
+      _ifs = new std::ifstream(path, std::ios::in | std::ios::binary);
+      _size = readFromEnd(*_ifs);
+      readNextToken();
+    }
+    //RawIndex(const RawIndex& index) :
+    //  path(index.path), _ifs(path, std::ios::in | std::ifstream::binary), _postingOffset(index._postingOffset), _size(index._size) { }
+    bool readNextToken() {
+      if (_size-- == 0) {
+        return false;
+      }
+      readFrom(*_ifs, &curTok);
+      return true;
+    }
+    void destroy() {
+      delete _ifs;
+      boost::filesystem::remove(path);
+    }
+    //uint32_t flushPostingTo(std::ostream& ofs) {
+    //  DynPostingStore dps;
+    //  *_ifs >> dps;
+    //  ofs << dps;
+    //  //_postingOffset = globPostingOffset;
+    //  //return dps.size();
+    //  return 0;
+    //}
+    void readTokEntries(std::vector<Index::Entry>& entries) {
+      //size_t oldEntriesSize = entries.size();
+      *_ifs >> entries;
+      //for (auto it = entries.begin() + oldEntriesSize; it != entries.end(); ++it) {
+      //  it->postingOffset += _postingOffset;
+      //  it->postingsSizeOffset += _postingSizeOffset;
+      //}
+    }
+
+    uint32_t curTok;
+    std::string path;
+
+  private:
+    std::ifstream* _ifs;
+    uint32_t _postingOffset;
+    uint32_t _postingSizeOffset;
+    size_t _size;
+};
+
+
+
+void Indexer::_mergeIndexes() {
+  std::cout << "Merging..." << std::endl;
+  std::string path = _config.indexDataPath + _config.invertIndexFile;
+  std::vector<std::string> paths;
+  if (boost::filesystem::exists(path)) {
+    paths.push_back(path);
+  }
+  char sfx = '0';
+  while (boost::filesystem::exists(path + '.' + sfx)) {
+    paths.push_back(path + '.' + sfx);
+    ++sfx;
+  }
+  //
+  std::ofstream ofs(path + ".tmp", std::ios::out | std::ofstream::binary);
+  std::list<RawIndex> indexes;
+  //uint32_t globPostingOffset = 0;
+  for (const auto& path: paths) {
+    indexes.push_back(RawIndex(path));
+    //globPostingOffset += indexes.back().flushPostingTo(ofs, globPostingOffset);
+    //indexes.back().readNextToken();
+  }
+  //
+  std::vector<Index::Entry> entries;
+  uint32_t min;
+  size_t size = 0;
+  while (!indexes.empty()) {
+    min = std::numeric_limits<uint32_t>::max();
+    for (auto& index: indexes) {
+      min = std::min(min, index.curTok);
+    }
+    auto itIdx = indexes.begin();
+    while (itIdx != indexes.end()) {
+      if (itIdx->curTok == min) {
+        itIdx->readTokEntries(entries);
+        if (!itIdx->readNextToken()) {
+          itIdx->destroy();
+          itIdx = indexes.erase(itIdx);
+        }
+        else {
+          ++itIdx;
+        }
+      }
+    }
+    //std::sort(entries.begin(), entries.end(), EntriesComparator(_docStore, _postingStore));
+    std::sort(entries.begin(), entries.end(), compareEntries);
+    writeIdxItem(ofs, min, entries);
+    entries.clear();
+    ++size;
+  }
+  writeTo(ofs, size);
+  ofs.close();
+  boost::filesystem::rename(path + ".tmp", path);
 }
 
 

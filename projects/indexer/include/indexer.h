@@ -11,28 +11,56 @@
 
 #include "MurmurHash2.h"
 #include "tinyxml2_ext.hpp"
-#include "index_struct.h"
+#include "../../../include/indexer/index_struct.h"
 
 
 class DynDocStorage : public Index::DocStorage
 {
   public:
-    DynDocStorage(uint8_t nZones, uint8_t tZones) : DocStorage(nZones, tZones) { }
+    //DynDocStorage(uint8_t nZones, uint8_t tZones) : DocStorage(nZones, tZones) { }
+    DynDocStorage(const Index::Config& config);
+    ~DynDocStorage();
     void addDoc(uint32_t docId, const std::vector<uint32_t>& nZones, const std::vector<uint16_t>& tZonesWCnt);
-    void load(const std::string& dataPath);
-    void save(const std::string& dataPath);
+    //void load(const std::string& dataPath);
+    //void save(const std::string& dataPath);
     size_t size();
+  private:
+
+    std::string _path;
 };
 
 
+//class DynPostingStore;
+//std::ostream& operator<<(std::ostream& ofs, DynPostingStore& postingStore);
+
+//class RawIndex;
 class DynPostingStore : public Index::PostingStorage
 {
   public:
-    uint32_t addTokenPosting(const std::vector< std::vector<uint16_t> >& zonesPosting);
+    DynPostingStore(const Index::Config& config);
+    ~DynPostingStore();
+    void addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset, uint32_t* postingsSizeOffset);
     size_t size();
-    friend std::ofstream& operator<<(std::ofstream& ofs, const DynPostingStore& postingStore);
+    //void mergeWith(const std::string& path);
+    //void copyPosting(std::ofstream& ofs);
+    //friend std::ostream& operator<<(std::ostream& ofs, DynPostingStore& postingStore);
+    //friend class RawIndex;
+  protected:
+    std::ofstream _ofs;
+    std::string _path;
 };
 
+
+
+//class EntriesComparator
+//{
+//  public:
+//    EntriesComparator(const DocStorage& dds, const PostingStorage& dps);
+//    bool operator()(const Entry& e1, const Entry& e2);
+//  private:
+//    const DocStorage& _ds;
+//    const PostingStorage& _ps;
+//};
 
 
 
@@ -40,7 +68,7 @@ class Indexer
 {
   public:
     Indexer(const Index::Config& config, uint64_t maxMemoryUsage = 1000000000);
-    //virtual ~Indexer();
+    ~Indexer();
     void cook();
 
   private:
@@ -51,7 +79,9 @@ class Indexer
     bool _hasSpace();
     std::string _findFirstEmptyFile();
     void _flushToDisk(); //EXECPT _docStore
+    void _mergeIndexes();
     void _addToStatDict(const std::string& word);
+    //friend class EntriesComparator;
 
     const uint64_t _maxMemSize;
     uint64_t _charsCnt, _entriesCnt;

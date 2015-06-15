@@ -2,10 +2,18 @@
 #define __INDEX_STRUCT_H__
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <memory>
+
+//namespace Index { class PostingStorage; }
+//std::istream& operator>>(std::istream& ifs, Index::PostingStorage& ps);
+
 
 namespace Index {
+
+  const uint8_t i2mask[8] = { 0, 2, 4, 8, 16, 32, 64, 128 };
 
   struct Zone
   {
@@ -22,10 +30,11 @@ namespace Index {
     //
     std::string docIdTag;
     //
+    std::string documentDb;
     std::string rawDataPath;
     std::string docStoreFile;
+    std::string postingsFile;
     std::string indexDataPath;
-    std::string plainIndexFile;
     std::string invertIndexFile;
     //
     std::vector<Zone*> numZones;
@@ -37,12 +46,15 @@ namespace Index {
 
   struct Entry
   {
-    Entry(uint32_t dOfs, uint32_t pOfs, std::vector<bool>& iz) :
-      docIdOffset(dOfs), postingOffset(pOfs), inZone(iz) { }
+    Entry(uint32_t dOfs = 0, uint32_t pOfs = 0, uint32_t pSOfs = 0, uint8_t iz = 0) :
+      docIdOffset(dOfs), postingOffset(pOfs), postingsSizeOffset(pSOfs), inZone(iz) { }
     uint32_t docIdOffset;
     uint32_t postingOffset;
-    std::vector<bool> inZone;
+    uint32_t postingsSizeOffset;
+    uint8_t inZone;
   };
+
+
 
   struct InvIdxItem
   {
@@ -50,29 +62,48 @@ namespace Index {
     std::vector<Entry> entries;
   };
 
+
+
   struct Posting
   {
     Posting() : begin(0), end(0) { }
-    Posting(uint16_t* b, uint16_t* e) : begin(b), end(e) { }
+    //Posting(uint16_t* b, uint16_t* e) : begin(b), end(e) { }
+    Posting(std::istream& is, uint32_t seek, uint32_t size);
     const uint16_t* begin;
     const uint16_t* end;
+    private:
+      std::shared_ptr<uint16_t> _data;
   };
 
   class PostingStorage 
   {
     public:
+      PostingStorage(const Config& config) :
+        _tZonesCnt(config.textZones.size())
+        //_ifs(config.indexDataPath + config.postingsFile, std::ios::in | std::ios::binary)
+      { _load(config.indexDataPath + config.postingsFile); }
       //Posting getPosting(uint32_t offset, uint8_t tZoneId);
+      uint16_t getPostingSize(uint32_t offset) const;
       std::vector<Posting> getFullPosting(const Entry& entry);
-      friend std::ifstream& operator>>(std::ifstream& ifs, PostingStorage& postingStore);
-    //protected:
-      std::vector<uint16_t> _postingStore;
+      //friend std::istream& (::operator>>)(std::istream& ifs, PostingStorage& ps);
+    protected:
+      PostingStorage() { }
+      void _load(const std::string& path);
+
+      //std::ofstream _ofs;
+      std::ifstream _ifs;
+      uint8_t _tZonesCnt;
+      uint32_t _commonSize;
+      std::vector<uint16_t> _postingSizes;
   };
+
+
 
   class DocStorage
   {
     public:
       DocStorage(const Config& config) {
-        _load(config.indexDataPath + '/' + config.docStoreFile);
+        _load(config.indexDataPath + config.docStoreFile);
       }
       uint32_t getDocId(uint32_t docIdOfs) const {
         return _docIds[docIdOfs];
@@ -85,39 +116,36 @@ namespace Index {
       }
       //
     protected:
-      DocStorage(uint8_t nZonesCnt, uint8_t tZonesCnt) :
-        _nZones(nZonesCnt), _tZonesWCnt(tZonesCnt) { }
+      //DocStorage(uint8_t nZonesCnt, uint8_t tZonesCnt) :
+      //  _nZones(nZonesCnt), _tZonesWCnt(tZonesCnt) { }
+      DocStorage() { }
       void _load(const std::string& dataPath, bool isAppendMode = true);
       //
       std::vector<uint32_t> _docIds;
-      std::vector<std::vector<uint32_t>> _nZones;
-      std::vector<std::vector<uint16_t>> _tZonesWCnt;
+      std::vector< std::vector<uint32_t> > _nZones;
+      std::vector< std::vector<uint16_t> > _tZonesWCnt;
   };
 
 
 
-  //class Indexer;
+  class InvertIndex {
+    public:
+      Index(const Config& config);
+      std::vector<Entry> findToken(const std::string& word) const;
+      uint32_t getNZone(const Entry& entry, uint8_t nZoneId); 
+      //Posting getPosting(const Entry& entry, uint8_t tZoneId);
+      std::vector<Posting> getFullPosting(const Entry& entry);
 
-  //class InvertIndex {
-  //  public:
-  //    Index(const std::string& configPath);
-  //    const std::vector<Entry>& findToken(const std::string& word) const;
-  //    uint32_t getNZone(const Entry& entry, uint8_t nZoneId); 
-  //    Posting getPosting(const Entry& entry, uint8_t tZoneId);
-  //    std::vector<Posting> getFullPosting(const Entry& entry);
+    private:
+      //void _load();
 
-  //    friend class Indexer;
+      std::vector<InvIdxItem> _invIdx;
+      PostingStorage _postingStore;
+      DocStorage _docStore;
+  };
 
-  //  private:
-  //    Index(uint8_t tZonesCnt, uint8_t nZonesCnt);
-  //    void _load();
-  //    void _save();
-  //    void _mergeWith();
 
-  //    std::vector<InvIdxItem> _invIdx;
-  //    PostingStorage _postingStore;
-  //    DocStorage _docStore;
-  //};
+  void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vecto<Entry> >& output);
 
 
   struct Exception : public std::exception

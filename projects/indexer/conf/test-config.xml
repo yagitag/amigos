@@ -12,11 +12,6 @@
     <optional>true</optional>
   </zone>
   <zone>
-    <path>ru,text</path>
-    <name>ru_sub</name>
-    <optional>true</optional>
-  </zone>
-  <zone>
     <path>en,text</path>
     <name>en_sub</name>
     <optional>true</optional>
@@ -110,7 +105,8 @@
 
 <index_data>
   <path>/home/ag/dir/search/projects/indexer/test_res/</path>
-  <plain_index>plain_index.dat</plain_index>
-  <document_storage>doc_store.dat</document_storage>
-  <invert_index>invert_index.dat</invert_index>
+  <document_database>doc.db</document_database>
+  <document_info>doc.dat</document_info>
+  <invert_index>index.dat</invert_index>
+  <postings>pos.dat</postings>
 </index_data>

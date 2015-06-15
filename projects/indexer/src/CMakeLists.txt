@@ -4,7 +4,7 @@ include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/murmur_hash/)
 include_directories(${Indexer_SOURCE_DIR}/${INC_DIR}/)
 
 add_library(index index_struct.cpp)
-add_executable(indexer indexer.cpp memory_control.cpp)
+add_executable(indexer indexer.cpp)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 if (NOT Boost_FOUND)
