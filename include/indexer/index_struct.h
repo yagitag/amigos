@@ -58,8 +58,14 @@ namespace Index {
 
   struct InvIdxItem
   {
+    void readFrom(std::ifstream& ifs);
+    //
     uint32_t tokId;
     std::vector<Entry> entries;
+    //double getIDF(uint8_t tZone);
+    //
+    //private:
+    //  std::
   };
 
 
@@ -119,6 +125,7 @@ namespace Index {
       //DocStorage(uint8_t nZonesCnt, uint8_t tZonesCnt) :
       //  _nZones(nZonesCnt), _tZonesWCnt(tZonesCnt) { }
       DocStorage() { }
+      uint32_t size() { return _docIds.size(); }
       void _load(const std::string& dataPath, bool isAppendMode = true);
       //
       std::vector<uint32_t> _docIds;
@@ -131,14 +138,18 @@ namespace Index {
   class InvertIndex {
     public:
       Index(const Config& config);
-      std::vector<Entry> findToken(const std::string& word) const;
-      uint32_t getNZone(const Entry& entry, uint8_t nZoneId); 
+      const InvIdxItem& findToken(const std::string& word) const;
+      uint32_t getDocId(const Entry& entry) const;
+      uint32_t getNZone(const Entry& entry, uint8_t nZoneId) const; 
+      double getIDF(const InvIdxItem& item, uint8_t tZoneId) const;
+      double getTF(const Entry& entry, uint8_t tZoneId) const;
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
       std::vector<Posting> getFullPosting(const Entry& entry);
 
     private:
       //void _load();
 
+      const Config& _config;
       std::vector<InvIdxItem> _invIdx;
       PostingStorage _postingStore;
       DocStorage _docStore;
