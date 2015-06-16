@@ -55,17 +55,12 @@ namespace Index {
   };
 
 
-
   struct InvIdxItem
   {
     void readFrom(std::ifstream& ifs);
     //
     uint32_t tokId;
     std::vector<Entry> entries;
-    //double getIDF(uint8_t tZone);
-    //
-    //private:
-    //  std::
   };
 
 
@@ -138,10 +133,11 @@ namespace Index {
   class InvertIndex {
     public:
       Index(const Config& config);
-      const InvIdxItem& findToken(const std::string& word) const;
+      uint32_t findTknIdx(const std::string& word) const;
       uint32_t getDocId(const Entry& entry) const;
       uint32_t getNZone(const Entry& entry, uint8_t nZoneId) const; 
-      double getIDF(const InvIdxItem& item, uint8_t tZoneId) const;
+      std::vector<Entry> getEntries(uint32_t tknIdx) const;
+      double getIDF(uint32_t tknIdx, uint8_t tZoneId) const;
       double getTF(const Entry& entry, uint8_t tZoneId) const;
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
       std::vector<Posting> getFullPosting(const Entry& entry);
@@ -151,6 +147,7 @@ namespace Index {
 
       const Config& _config;
       std::vector<InvIdxItem> _invIdx;
+      std::vector< std::vector<uint16_t> > _idf;
       PostingStorage _postingStore;
       DocStorage _docStore;
   };
