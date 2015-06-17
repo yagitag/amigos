@@ -231,7 +231,7 @@ void InvIdxItem::read(std::ifstream& ifs) {
 
 
 
-bool operator<(const InvIdxItem& li, const InvIdxItem& ri) {
+bool compareInvIdxItem(const InvIdxItem& li, const InvIdxItem& ri) {
   return li.tokId < ri.tokId;
 }
 
@@ -276,9 +276,9 @@ InvertIndex::~InvertIndex() {
 
 
 uint32_t InvertIndex::findTknIdx(const std::string& word) {
-  InvIdxItem tmp; 
+  InvIdxItem tmp;
   tmp.tokId = MurmurHash2(word.data(), word.size());
-  return std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp) - _invIdx.begin();
+  return std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp, compareInvIdxItem) - _invIdx.begin();
 }
 
 
