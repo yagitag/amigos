@@ -1,6 +1,7 @@
 #include "index_io.hpp"
 #include "../../../include/indexer/index_struct.h"
 #include "tinyxml2_ext.hpp"
+#include "MurmurHash2.h"
 
 #include <algorithm>
 #include <iostream>
@@ -222,8 +223,92 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
 
 
 
-InvertIndex::InvertIndex(const Config& config) :
-  _postingStore(config), _docStore(config)
-{
-  
+
+void InvIdxItem::read(std::ifstream& ifs) {
+  readFrom(ifs, &tokId);
+  ifs >> entries;
+}
+
+
+
+bool operator<(const InvIdxItem& li, const InvIdxItem& ri) {
+  return li.tokId < ri.tokId;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+//InvertIndex::InvertIndex(const Config& config) :
+//  _config(config), _postingStore(config), _docStore(config)
+//{
+//  std::ifstream ifs(_config.indexDataPath + _config.invertIndexFile, std::ios::in | std::ios::binary);
+//  uint32_t size = readFromEnd(ifs);
+//  _invIdx.resize(size);
+//  for (auto item: _invIdx) {
+//    item.read(ifs);
+//  }
+//  _idf.resize(_config.textZones.size());
+//  for (auto vec: _idf) {
+//    vec.resize(_invIdx.size());
+//  }
+//}
+
+
+
+void InvertIndex::configure(const std::string& pathToConfig) {
+  _pConfig = new Config(pathToConfig);
+  _pPostingStore = new PostingStorage(*_pConfig);
+  _pDocStore = new DocStorage(*_pConfig);
+}
+
+
+
+InvertIndex::~InvertIndex() {
+  if (!_pConfig) delete _pConfig;
+  if (!_pPostingStore) delete _pPostingStore;
+  if (!_pDocStore) delete _pDocStore;
+}
+
+
+
+
+uint32_t InvertIndex::findTknIdx(const std::string& word) {
+  InvIdxItem tmp; 
+  tmp.tokId = MurmurHash2(word.data(), word.size());
+  return std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp) - _invIdx.begin();
+}
+
+
+
+uint32_t InvertIndex::getDocId(const Entry& entry) {
+  return _pDocStore->getDocId(entry.docIdOffset);
+}
+
+
+
+uint32_t InvertIndex::getNZone(const Entry& entry, uint8_t nZoneId) {
+  return _pDocStore->getNumZone(entry.docIdOffset, nZoneId);
+}
+
+
+
+double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
+  uint8_t offset = 0;
+  for (size_t i = 0; i < tZoneId; ++i) {
+    if ((i2mask[i] & entry.inZone) != 0) {
+      ++offset;
+    }
+  }
+  double postingSize = _pPostingStore->getPostingSize(entry.postingOffset + offset);
+  double zoneSize = _pDocStore->getTZoneWCnt(entry.docIdOffset, tZoneId);
+  return postingSize / zoneSize;
+}
+
+
+
+double InvertIndex::getIDF(uint32_t tknIdx, uint8_t tZoneId) {
+  return _idf[tZoneId][tknIdx];
 }

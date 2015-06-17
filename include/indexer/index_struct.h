@@ -57,7 +57,7 @@ namespace Index {
 
   struct InvIdxItem
   {
-    void readFrom(std::ifstream& ifs);
+    void read(std::ifstream& ifs);
     //
     uint32_t tokId;
     std::vector<Entry> entries;
@@ -132,28 +132,30 @@ namespace Index {
 
   class InvertIndex {
     public:
-      Index(const Config& config);
-      uint32_t findTknIdx(const std::string& word) const;
-      uint32_t getDocId(const Entry& entry) const;
-      uint32_t getNZone(const Entry& entry, uint8_t nZoneId) const; 
-      std::vector<Entry> getEntries(uint32_t tknIdx) const;
-      double getIDF(uint32_t tknIdx, uint8_t tZoneId) const;
-      double getTF(const Entry& entry, uint8_t tZoneId) const;
+      InvertIndex() : _pConfig(0), _pPostingStore(0), _pDocStore(0) { }
+      ~InvertIndex();
+      void configure(const std::string& pathToConfig);
+      uint32_t findTknIdx(const std::string& word);
+      uint32_t getDocId(const Entry& entry);
+      uint32_t getNZone(const Entry& entry, uint8_t nZoneId); 
+      std::vector<Entry> getEntries(uint32_t tknIdx);
+      double getIDF(uint32_t tknIdx, uint8_t tZoneId);
+      double getTF(const Entry& entry, uint8_t tZoneId);
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
       std::vector<Posting> getFullPosting(const Entry& entry);
 
     private:
       //void _load();
 
-      const Config& _config;
+      const Config* _pConfig;
       std::vector<InvIdxItem> _invIdx;
       std::vector< std::vector<uint16_t> > _idf;
-      PostingStorage _postingStore;
-      DocStorage _docStore;
+      PostingStorage* _pPostingStore;
+      DocStorage* _pDocStore;
   };
 
 
-  void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vecto<Entry> >& output);
+  void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output);
 
 
   struct Exception : public std::exception
@@ -166,4 +168,4 @@ namespace Index {
 
 } // namespace Index
 
-#endif // __INDEXSTRUCT_H__
+#endif // __INDEX_STRUCT_H__
