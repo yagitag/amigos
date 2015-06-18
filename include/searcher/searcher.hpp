@@ -1,3 +1,5 @@
+#pragma once
+
 #include<string>
 #include<vector>
 #include "../../../include/indexer/index_struct.h"
