@@ -471,20 +471,25 @@ RawDoc* DocDatabase::getDoc(uint32_t key) {
   leveldb::Status status = _db->Get(leveldb::ReadOptions(), std::to_string(key), &value);
   std::string title, enSub, time;
   std::istringstream iss(value);
-  readStr(iss, title);
-  readStr(iss, enSub);
-  readStr(iss, time);
-  return new RawDoc(title, enSub, time);
+  //
+  RawDoc* doc = new RawDoc();
+  readStr(iss, doc->videoId);
+  readStr(iss, doc->title);
+  readStr(iss, doc->subtitles);
+  readStr(iss, doc->time);
+  //
+  return doc;
 }
 
 
 
 
-void DocDatabase::putDoc(uint32_t key, std::string& title, std::string& enSub, std::string& time) {
+void DocDatabase::putDoc(uint32_t key, RawDoc& doc) {
   std::ostringstream oss;
-  writeStr(oss, title);
-  writeStr(oss, enSub);
-  writeStr(oss, time);
+  writeStr(oss, doc.videoId);
+  writeStr(oss, doc.title);
+  writeStr(oss, doc.subtitles);
+  writeStr(oss, doc.time);
   leveldb::Status status = _db->Put(leveldb::WriteOptions(), std::to_string(key), oss.str());
 }
 

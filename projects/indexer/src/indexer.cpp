@@ -230,6 +230,27 @@ bool Indexer::_hasSpace() {
 
 
 
+void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Zone*>& zonesVec, std::vector<std::string>& outVec, std::map<std::string,std::string>& forSave) {
+  outVec.resize(zonesVec.size(), "");
+  for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
+    const tinyxml2::XMLElement* curTag = tiElem;
+    for (auto& tag : zonesVec[zi]->path) {
+      curTag = curTag->FirstChildElement(tag.c_str());
+    }
+    if (!curTag && !zonesVec[zi]->isOptional) {
+      throw Index::Exception("Zone '" + zonesVec[zi]->name + "' is necessary");
+    }
+    else if (curTag && curTag->GetText()) {
+      outVec[zi] = curTag->GetText();
+      if (zonesVec[zi]->needSave) {
+        forSave[zonesVec[zi]->name] = outVec[zi];
+      }
+    }
+  }
+}
+
+
+
 void Indexer::_parseRawData() {
   uint32_t itemsCnt = 0;
   uint32_t checkInterval = 1000;
@@ -272,37 +293,16 @@ void Indexer::_parseRawData() {
         _extractNumZones(itemTag, numZones, zonesForSave);
         if (numZones[3] == 2)  continue; //если английские сабы переведены, пропускаем их
         _extractTextZones(itemTag, wordsCnt, zonesForSave);
-        _extractZones(itemTag, _config.trashZones, fake, zonesForSave);
+        extractZones(itemTag, _config.trashZones, fake, zonesForSave);
         //
         _docStore.addDoc(docId, numZones, wordsCnt);
-        RawDoc doc(zonesForSave);
+        Index::RawDoc doc(zonesForSave);
         _docDB.putDoc(docId, doc);
         for (auto pair: zonesForSave) pair.second = "";
       }
     }
     catch (Index::Exception& ie) {
       throw Index::Exception("Parse file '" + filePath + "' is failed. " + ie.errMsg);
-    }
-  }
-}
-
-
-
-void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Zone*>& zonesVec, std::vector<std::string>& outVec, std::map<std::string,std::string>& forSave) {
-  outVec.resize(zonesVec.size(), "");
-  for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
-    const tinyxml2::XMLElement* curTag = tiElem;
-    for (auto& tag : zonesVec[zi]->path) {
-      curTag = curTag->FirstChildElement(tag.c_str());
-    }
-    if (!curTag && !zonesVec[zi]->isOptional) {
-      throw Index::Exception("Zone '" + zonesVec[zi]->name + "' is necessary");
-    }
-    else if (curTag && curTag->GetText()) {
-      outVec[zi] = curTag->GetText();
-      if (zonesVec[zi]->needSave) {
-        forSave[zonesVec[zi]->name] = outVec[zi];
-      }
     }
   }
 }
