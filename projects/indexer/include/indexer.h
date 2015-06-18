@@ -74,7 +74,7 @@ class Indexer
   private:
     void _parseRawData();
     void _parseZone(Index::Zone& zone, const tinyxml2::XMLElement* tiElem);
-    void _extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt);
+    void _extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt, std::map<std::string,std::string>& forSave);
     void _extractNumZones(const tinyxml2::XMLElement* tiElem, uint32_t docId, std::vector<uint16_t>& wordsCnt);
     bool _hasSpace();
     std::string _findFirstEmptyFile();
@@ -92,6 +92,7 @@ class Indexer
     std::unordered_map<std::string,uint32_t> _statDict;
     DynDocStorage _docStore;
     DynPostingStore _postingStore;
+    Index::DocDatabase _docDB;
 };
 
 

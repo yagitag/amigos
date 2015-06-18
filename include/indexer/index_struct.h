@@ -22,6 +22,7 @@ namespace Index {
     std::string name;
     std::vector<std::string> path;
     bool isOptional;
+    bool needSave;
     int id;
   };
 
@@ -131,15 +132,14 @@ namespace Index {
   };
 
 
-  class RawDoc {
-    public:
-      RawDoc() { }
-      RawDoc(std::string& title, std::string& sub, std::string& time);
-      std::string title;
-      //std::vector< std::pair<std::string,double> > getPhrases();
-    private:
-      std::string _enSubtitles;
-      std::string _time;
+  struct RawDoc {
+    RawDoc() { }
+    RawDoc(std::map<std::string,std::string>& zones);
+    std::string title;
+    std::string videoId;
+    std::string subtitles;
+    std::string time;
+    void getPhrases(std::vector< std::pair<std::string,double> >& phrases);
   };
 
 
@@ -149,8 +149,7 @@ namespace Index {
       ~DocDatabase();
       void open(const std::string& path);
       RawDoc* getDoc(uint32_t key);
-      //void putDoc(uint32_t key, RawDoc& doc);
-      void putDoc(uint32_t key, std::string& title, std::string& ensub, std::string& time);
+      void putDoc(uint32_t key, RawDoc& doc);
     private:
       leveldb::DB *_db;
   };

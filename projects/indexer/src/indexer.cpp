@@ -186,7 +186,9 @@ void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zone
 Indexer::Indexer(const Index::Config& config, uint64_t maxMemoryUsage) :
   _maxMemSize(maxMemoryUsage), _charsCnt(0), _entriesCnt(0),
   _config(config), _docStore(config), _postingStore(config)
-{ }
+{
+  _docDB.open(_config.indexDataPath + _config.documentDb);
+}
 
 
 Indexer::~Indexer() { }
@@ -239,6 +241,9 @@ void Indexer::_parseRawData() {
   }
   //
   std::vector<uint16_t> wordsCnt(_config.textZones.size());
+  std::vector<uint32_t> numZones(_config.numZones.size());
+  std::map<std::string,std::string> zonesForSave;
+  std::vector<std::string> fake;
   for (boost::filesystem::directory_iterator dir_it(_config.rawDataPath); dir_it != boost::filesystem::directory_iterator(); ++dir_it) {
     auto filePath = dir_it->path().string();
     if (!boost::filesystem::is_regular_file(dir_it->status())) {
@@ -260,9 +265,19 @@ void Indexer::_parseRawData() {
           throw Index::Exception("There is an incorrect tag '" + name + "'");
         }
         auto docId = stou(getNecessaryTag(itemTag, _config.docIdTag)->GetText());
+        //
         std::fill(wordsCnt.begin(), wordsCnt.end(), 0);
-        _extractTextZones(itemTag, wordsCnt);
-        _extractNumZones(itemTag, docId, wordsCnt);
+        //std::fill(numZones.begin(), numZones.end(), 0); нет смысла, они все заполняются
+        //
+        _extractNumZones(itemTag, numZones, zonesForSave);
+        if (numZones[3] == 2)  continue; //если английские сабы переведены, пропускаем их
+        _extractTextZones(itemTag, wordsCnt, zonesForSave);
+        _extractZones(itemTag, _config.trashZones, fake, zonesForSave);
+        //
+        _docStore.addDoc(docId, numZones, wordsCnt);
+        RawDoc doc(zonesForSave);
+        _docDB.putDoc(docId, doc);
+        for (auto pair: zonesForSave) pair.second = "";
       }
     }
     catch (Index::Exception& ie) {
@@ -273,7 +288,7 @@ void Indexer::_parseRawData() {
 
 
 
-void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Zone*>& zonesVec, std::vector<std::string>& outVec) {
+void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Zone*>& zonesVec, std::vector<std::string>& outVec, std::map<std::string,std::string>& forSave) {
   outVec.resize(zonesVec.size(), "");
   for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
     const tinyxml2::XMLElement* curTag = tiElem;
@@ -285,6 +300,9 @@ void extractZones(const tinyxml2::XMLElement* tiElem, const std::vector<Index::Z
     }
     else if (curTag && curTag->GetText()) {
       outVec[zi] = curTag->GetText();
+      if (zonesVec[zi]->needSave) {
+        forSave[zonesVec[zi]->name] = outVec[zi];
+      }
     }
   }
 }
@@ -324,11 +342,11 @@ void Indexer::_addToStatDict(const std::string& word) {
 
 
 
-void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt) {
+void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt, std::map<std::string,std::string>& forSave) {
   uint16_t pos = 0;
   std::vector<std::string> bufVec;
   std::vector<std::string> zonesVec;
-  extractZones(tiElem, _config.textZones, zonesVec);
+  extractZones(tiElem, _config.textZones, zonesVec, forSave);
   std::unordered_map< uint32_t,std::vector<uint16_t> > tmpDict;
   for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
     Common::terminate2vec(zonesVec[zi], bufVec);
@@ -357,14 +375,12 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
 
 
 
-void Indexer::_extractNumZones(const tinyxml2::XMLElement* tiElem, uint32_t docId, std::vector<uint16_t>& wordsCnt) {
+void Indexer::_extractNumZones(const tinyxml2::XMLElement* tiElem, std::vector<uint32_t>& zonesVal, std::map<std::string,std::string>& forSave) {
   std::vector<std::string> zonesVec;
-  extractZones(tiElem, _config.numZones, zonesVec);
-  std::vector<uint32_t> zonesVal;
+  extractZones(tiElem, _config.numZones, zonesVec, forSave);
   for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
-    zonesVal.push_back(stou(zonesVec[zi]));
+    zonesVal[zi] = stou(zonesVec[zi]);
   }
-  _docStore.addDoc(docId, zonesVal, wordsCnt);
 }
 
 
@@ -525,55 +541,55 @@ void Indexer::_mergeIndexes() {
 
 int main(int argc, char *argv[])
 {
-//  const char *configPath;
-//  if (argc == 2) {
-//    configPath = argv[1];
-//  }
-//  else {
-//    std::cout << "Usage: '" << argv[0] << "' path_to_config" << std::endl;
-//    return 1;
-//  }
-//  try {
-//    Common::init_locale("en_US.UTF-8");
-//    Index::Config config(configPath);
-//    Indexer indexer(config);
-//    indexer.cook();
-//  }
-//  catch (std::exception& e) {
-//    std::cerr << "Catch the exception: " << e.what() << std::endl;
-//  }
-  //
-  leveldb::DB* db;
-  leveldb::Options options;
-  options.create_if_missing = true;
-  //
-  leveldb::Status status = leveldb::DB::Open(options, "./testdb", &db);
-  if (!status.ok()) {
-    std::cerr << "Unable to open/create test database './testdb'" << std::endl;
-    std::cerr << status.ToString() << std::endl;
+  const char *configPath;
+  if (argc == 2) {
+    configPath = argv[1];
+  }
+  else {
+    std::cout << "Usage: '" << argv[0] << "' path_to_config" << std::endl;
     return 1;
   }
+  try {
+    Common::init_locale("en_US.UTF-8");
+    Index::Config config(configPath);
+    Indexer indexer(config);
+    indexer.cook();
+  }
+  catch (std::exception& e) {
+    std::cerr << "Catch the exception: " << e.what() << std::endl;
+  }
   //
-  std::string value = "rocket";
-  std::ostringstream valueStream;
-  int size = 4;
-  writeTo(valueStream, size);
-  valueStream << value;
-  status = db->Put(leveldb::WriteOptions(), "166", valueStream.str());
-  //
-  size = 0;
-  status = db->Get(leveldb::ReadOptions(), "166", &value);
-  std::istringstream iValueStream(value);
-  readFrom(iValueStream, &size);
-  value.resize(size);
-  iValueStream.read(reinterpret_cast<char*>(&value[0]), value.size()*sizeof(char));
-  std::cout << value << std::endl;
-  //std::string title, enSub, time;
-  //iValueStream >> title;
-  //iValueStream >> enSub;
-  //iValueStream >> time;
-  //std::cout << title << enSub << time << std::endl;
-  delete db;
+  //leveldb::DB* db;
+  //leveldb::Options options;
+  //options.create_if_missing = true;
+  ////
+  //leveldb::Status status = leveldb::DB::Open(options, "./testdb", &db);
+  //if (!status.ok()) {
+  //  std::cerr << "Unable to open/create test database './testdb'" << std::endl;
+  //  std::cerr << status.ToString() << std::endl;
+  //  return 1;
+  //}
+  ////
+  //std::string value = "rocket";
+  //std::ostringstream valueStream;
+  //int size = 4;
+  //writeTo(valueStream, size);
+  //valueStream << value;
+  //status = db->Put(leveldb::WriteOptions(), "166", valueStream.str());
+  ////
+  //size = 0;
+  //status = db->Get(leveldb::ReadOptions(), "166", &value);
+  //std::istringstream iValueStream(value);
+  //readFrom(iValueStream, &size);
+  //value.resize(size);
+  //iValueStream.read(reinterpret_cast<char*>(&value[0]), value.size()*sizeof(char));
+  //std::cout << value << std::endl;
+  ////std::string title, enSub, time;
+  ////iValueStream >> title;
+  ////iValueStream >> enSub;
+  ////iValueStream >> time;
+  ////std::cout << title << enSub << time << std::endl;
+  //delete db;
   //
   return 0;
 }

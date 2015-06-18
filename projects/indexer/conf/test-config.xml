@@ -6,6 +6,7 @@
 <text_zones>
   <zone>
     <name>title</name>
+    <needSave>true</needSave>
   </zone>
   <zone>
     <name>description</name>
@@ -15,6 +16,7 @@
     <path>en,text</path>
     <name>en_sub</name>
     <optional>true</optional>
+    <needSave>true</needSave>
   </zone>
   <zone>
     <name>keywords</name>
@@ -84,18 +86,17 @@
     <path>en,time_info</path>
     <name>en_sub_time</name>
     <optional>true</optional>
+    <needSave>true</needSave>
   </zone>
   <zone>
     <name>date</name>
   </zone>
   <zone>
     <name>video_id</name>
+    <needSave>true</needSave>
   </zone>
   <zone>
     <name>author</name>
-  </zone>
-  <zone>
-    <name>video_id</name>
   </zone>
 </trash_zones>
 

@@ -22,6 +22,24 @@ const double EPSILON = std::numeric_limits<double>::epsilon();
 
 
 
+bool parseBoolTag(const tinyxml2::XMLElement* tag) {
+  if (tag) {
+    std::string text = tag->GetText();
+    if (text == "true" || text == "True" || text == "1") {
+      return true;
+    }
+    else if (text == "false" || text == "False" || text == "0") {
+      return false;
+    }
+    else {
+      throw Exception("Cannot load config. Zone \"optional\" must be \"[Tt]rue|[Ff]alse|[01]\"");
+    }
+  }
+  return false;
+}
+
+
+
 void parseZone(Zone& zone, const tinyxml2::XMLElement* tiElem) {
   zone.name = getNecessaryTag(tiElem, "name")->GetText();
   //
@@ -38,21 +56,9 @@ void parseZone(Zone& zone, const tinyxml2::XMLElement* tiElem) {
   }
   //
   tag = tiElem->FirstChildElement("optional");
-  if (tag) {
-    std::string text = tag->GetText();
-    if (text == "true" || text == "True" || text == "1") {
-      zone.isOptional = true;
-    }
-    else if (text == "false" || text == "False" || text == "0") {
-      zone.isOptional = false;
-    }
-    else {
-      throw Exception("Cannot load config. Zone \"optional\" must be \"[Tt]rue|[Ff]alse|[01]\"");
-    }
-  }
-  else {
-    zone.isOptional = false;
-  }
+  zone.isOptional = parseBoolTag(tag);
+  tag = tiElem->FirstChildElement("needSave");
+  zone.needSave = parseBoolTag(tag);
 }
 
 
@@ -489,8 +495,9 @@ void DocDatabase::putDoc(uint32_t key, std::string& title, std::string& enSub, s
 
 
 
-RawDoc::RawDoc(std::string& title, std::string& sub, std::string& time) {
-  this->title = title;
-  _enSubtitles = sub;
-  _time = time;
+RawDoc::RawDoc(std::map<std::string,std::string>& zones) {
+  title = zones["title"];
+  subtitles = zones["en_sub"];
+  time = zones["en_sub_time"];
+  videoId = zones["video_id"];
 }
