@@ -363,10 +363,11 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
     bufVec.clear();
   }
   uint32_t docOfs, posOfs, posSOfs;
-  uint8_t inZone = 0;
+  uint8_t inZone;
   std::vector< std::vector<uint16_t> > fzpBuf;
   //std::vector<bool> inZone(_config.textZones.size());
   for (const auto& pair : tmpDict) {
+    inZone = 0;
     splitByZones(pair.second, wordsCnt, fzpBuf, inZone);
     _postingStore.addTokenPosting(fzpBuf, &posOfs, &posSOfs);
     docOfs = _docStore.size();

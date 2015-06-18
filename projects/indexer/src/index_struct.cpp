@@ -154,7 +154,7 @@ std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
   for (size_t i = 0; i < _tZonesCnt; ++i) {
     if (entry.inZone & i2mask[i]) {
       //Posting np(&_postingStore[po], &_postingStore[po] + _postingSizes[pso]);
-      Posting np(_ifs, po, _postingSizes[pso]);
+      Posting np(_ifs, po * sizeof(uint16_t), _postingSizes[pso]);
       po += _postingSizes[pso++];
       res[i] = np;
     }
@@ -170,7 +170,7 @@ void PostingStorage::_load(const std::string& path) {
     throw Index::Exception("Cannot open '" + path + "'");
   }
   _commonSize = readFromEnd(_ifs);
-  _ifs.seekg((_commonSize + 1) * sizeof(uint16_t), _ifs.beg);
+  _ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
   _ifs >> _postingSizes;
   //_ifs.close();
   //_ofs.open(path, std::ios::out | std::ios::binary);
@@ -325,13 +325,19 @@ uint32_t InvertIndex::getNZone(const Entry& entry, uint8_t nZoneId) {
 double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
   uint8_t offset = 0;
   for (size_t i = 0; i < tZoneId; ++i) {
-    if ((i2mask[i] & entry.inZone) != 0) {
+    if (i2mask[i] & entry.inZone) {
       ++offset;
     }
   }
   double postingSize = _pPostingStore->getPostingSize(entry.postingOffset + offset);
   double zoneSize = _pDocStore->getTZoneWCnt(entry.docIdOffset, tZoneId);
   return postingSize / zoneSize;
+}
+
+
+
+std::vector<Posting> InvertIndex::getFullPosting(const Entry& entry) {
+  return _pPostingStore->getFullPosting(entry);
 }
 
 
