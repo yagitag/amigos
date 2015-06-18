@@ -7,6 +7,8 @@
 #include <vector>
 #include <memory>
 
+#include "../../contrib/leveldb/include/leveldb/db.h"
+
 //namespace Index { class PostingStorage; }
 //std::istream& operator>>(std::istream& ifs, Index::PostingStorage& ps);
 
@@ -129,6 +131,31 @@ namespace Index {
   };
 
 
+  class RawDoc {
+    public:
+      RawDoc() { }
+      RawDoc(std::string& title, std::string& sub, std::string& time);
+      std::string title;
+      //std::vector< std::pair<std::string,double> > getPhrases();
+    private:
+      std::string _enSubtitles;
+      std::string _time;
+  };
+
+
+  class DocDatabase {
+    public:
+      DocDatabase();
+      ~DocDatabase();
+      void open(const std::string& path);
+      RawDoc* getDoc(uint32_t key);
+      //void putDoc(uint32_t key, RawDoc& doc);
+      void putDoc(uint32_t key, std::string& title, std::string& ensub, std::string& time);
+    private:
+      leveldb::DB *_db;
+  };
+
+
 
   class InvertIndex {
     public:
@@ -143,6 +170,7 @@ namespace Index {
       double getTF(const Entry& entry, uint8_t tZoneId);
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
       std::vector<Posting> getFullPosting(const Entry& entry);
+      RawDoc* getRawDoc(uint32_t docId);
 
     private:
       //void _load();
@@ -152,6 +180,7 @@ namespace Index {
       std::vector< std::vector<uint16_t> > _idf;
       PostingStorage* _pPostingStore;
       DocStorage* _pDocStore;
+      DocDatabase _docDB;
   };
 
 

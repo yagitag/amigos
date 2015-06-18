@@ -262,6 +262,7 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   _pConfig = new Config(pathToConfig);
   _pPostingStore = new PostingStorage(*_pConfig);
   _pDocStore = new DocStorage(*_pConfig);
+  _docDB.open(_pConfig->indexDataPath + _pConfig->documentDb);
 }
 
 
@@ -311,4 +312,185 @@ double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
 
 double InvertIndex::getIDF(uint32_t tknIdx, uint8_t tZoneId) {
   return _idf[tZoneId][tknIdx];
+}
+
+
+
+RawDoc* InvertIndex::getRawDoc(uint32_t docId) {
+  return _docDB.getDoc(docId);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+class NoMoreElements { };
+inline size_t jump(std::vector<Entry>& vec, Entry& entry, size_t pos, size_t step) {
+  size_t next_pos = std::min(pos + step, vec.size() - 1);
+  while(next_pos < vec.size() && vec[next_pos].docIdOffset <= entry.docIdOffset) {
+    pos = next_pos;
+    next_pos += step;
+  }
+  next_pos = std::min(next_pos, vec.size() - 1);
+  if (vec[next_pos].docIdOffset >= entry.docIdOffset) {
+    while (pos < next_pos && vec[pos].docIdOffset < entry.docIdOffset) {
+      ++pos;
+    }
+  }
+  if (vec[pos].docIdOffset < entry.docIdOffset) throw NoMoreElements();
+  return pos;
+}
+
+
+
+//inline void convertToEntries(std::vector< std::vector<Entry> >& res, std::vector<Entry>& entries) {
+//  entries.resize(res.size());
+//  for (int i = 0; i < res.size(); ++i) {
+//    entries[i] = res[i].front();
+//  }
+//}
+
+
+
+void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>& entries, std::vector< std::vector<Entry> >& res, size_t step) {
+  size_t i1, i2;
+  i1 = i2 = 0;
+  std::vector<Entry> v1(common.size());
+  for (size_t i = 0; i < res.size(); ++i) {
+    entries[i] = res[i].front();
+  }
+  std::vector<Entry>& v2 = entries;
+  try {
+    while (42) {
+      if (v1[i1].docIdOffset < v2[i2].docIdOffset) {
+        i1 = jump(v1, v2[i2], i1, step);
+      }
+      else if (v1[i1].docIdOffset > v2[i2].docIdOffset) {
+        i2 = jump(v2, v1[i1], i2, step);
+      }
+      else {
+        res.push_back(std::vector<Entry>());
+        std::copy(common[i1].begin(), common[i1].end(), std::back_inserter(res.back()));
+        res.back().push_back(v2[i2]);
+        //res.push_back(v1[i1]);
+        ++i1; ++i2;
+        if (i1 == v1.size() || i2 == v2.size()) return;
+      }
+    }
+  }
+  catch (NoMoreElements) { return; }
+}
+
+
+
+bool compareSizes(const std::vector<Entry>& v1, const std::vector<Entry>& v2) {
+  return v1.size() < v2.size();
+}
+
+
+
+void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output) {
+  if (input.empty()) return;
+  size_t step = 100;
+  std::sort(input.begin(), input.end(), compareSizes);
+  output.push_back(std::vector<Entry>());
+  output.resize(input.front().size());
+  for (size_t i = 0; i < input.front().size(); ++i) {
+    output[i].push_back(input.front()[i]);
+  }
+  //
+  std::vector< std::vector<Entry> > tmp;
+  for (size_t i = 1; i < input.size(); ++i) {
+    if (i % 2 == 1) {
+      intersectMore(output, input[i], tmp, step);
+    }
+    else if (i % 2 == 0) {
+      intersectMore(tmp, input[i], output, step);
+    }
+  }
+  if (input.size() % 2 == 0) {
+    output = tmp;
+  }
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+DocDatabase::DocDatabase() : _db(0) { }
+
+
+
+DocDatabase::~DocDatabase() {
+  if (_db != 0) delete _db;
+}
+
+
+
+void DocDatabase::open(const std::string& path) {
+  leveldb::Options options;
+  options.create_if_missing = true;
+  //
+  leveldb::Status status = leveldb::DB::Open(options, path, &_db);
+  if (!status.ok()) {
+    throw Exception("Unable to open/create test database '" + path + "'. Reason: " + status.ToString());
+  }
+}
+
+
+
+void readStr(std::istream& is, std::string& str) {
+  uint32_t size;
+  readFrom(is, &size);
+  str.resize(size);
+  is.read(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
+}
+
+
+
+void writeStr(std::ostream& os, std::string& str) {
+  writeTo(os, str.size());
+  os.write(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
+}
+
+
+
+RawDoc* DocDatabase::getDoc(uint32_t key) {
+  std::string value;
+  leveldb::Status status = _db->Get(leveldb::ReadOptions(), std::to_string(key), &value);
+  std::string title, enSub, time;
+  std::istringstream iss(value);
+  readStr(iss, title);
+  readStr(iss, enSub);
+  readStr(iss, time);
+  return new RawDoc(title, enSub, time);
+}
+
+
+
+
+void DocDatabase::putDoc(uint32_t key, std::string& title, std::string& enSub, std::string& time) {
+  std::ostringstream oss;
+  writeStr(oss, title);
+  writeStr(oss, enSub);
+  writeStr(oss, time);
+  leveldb::Status status = _db->Put(leveldb::WriteOptions(), std::to_string(key), oss.str());
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+RawDoc::RawDoc(std::string& title, std::string& sub, std::string& time) {
+  this->title = title;
+  _enSubtitles = sub;
+  _time = time;
 }

@@ -4,7 +4,7 @@
 #include "../../include/indexer/index_struct.h"
 #include "../../../contrib/tinyxml2/tinyxml2.h"
 
-const tinyxml2::XMLElement* getNecessaryTag(const tinyxml2::XMLNode* tiElem, const std::string& tag) {
+inline const tinyxml2::XMLElement* getNecessaryTag(const tinyxml2::XMLNode* tiElem, const std::string& tag) {
   auto result = tiElem->FirstChildElement(tag.c_str());
   if (!result) {
     throw Index::Exception("There is no tag '" + tag + "'");

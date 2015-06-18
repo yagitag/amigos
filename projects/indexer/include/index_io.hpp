@@ -8,55 +8,57 @@
 
 
 
-void bool2byte(const std::vector<bool>& boolVec, std::vector<uint8_t>& res) {
-  const size_t byteSize = 8;
-  uint8_t byteVal = 0;
-  size_t i = 0;
-  while (i < boolVec.size()) {
-    byteVal = (byteVal << 1) | boolVec[i++];
-    if (i % byteSize == 0) {
-      res.push_back(byteVal);
-      byteVal = 0;
-    }
-  }
-  if (i % byteSize != 0) {
-    res.push_back(byteVal << (byteSize - i%byteSize));
-  }
-}
+//void bool2byte(const std::vector<bool>& boolVec, std::vector<uint8_t>& res) {
+//  const size_t byteSize = 8;
+//  uint8_t byteVal = 0;
+//  size_t i = 0;
+//  while (i < boolVec.size()) {
+//    byteVal = (byteVal << 1) | boolVec[i++];
+//    if (i % byteSize == 0) {
+//      res.push_back(byteVal);
+//      byteVal = 0;
+//    }
+//  }
+//  if (i % byteSize != 0) {
+//    res.push_back(byteVal << (byteSize - i%byteSize));
+//  }
+//}
+//
+//
+//void byte2bool(const std::vector<uint8_t>& byteVec, std::vector<bool>& res, size_t size = 0) {
+//  const int byteSize = 8;
+//  if (!size) {
+//    size = byteVec.size() * byteSize;
+//  }
+//  res.resize(size);
+//  uint8_t mask = 0x80;
+//  for (size_t i = 0; i < size; ++i) {
+//    res[i] = byteVec[i/byteSize] & mask;
+//    mask >>= 1;
+//    if (i % byteSize == byteSize - 1) {
+//      mask = 0x80;
+//    }
+//  }
+//}
 
 
-void byte2bool(const std::vector<uint8_t>& byteVec, std::vector<bool>& res, size_t size = 0) {
-  const int byteSize = 8;
-  if (!size) {
-    size = byteVec.size() * byteSize;
-  }
-  res.resize(size);
-  uint8_t mask = 0x80;
-  for (size_t i = 0; i < size; ++i) {
-    res[i] = byteVec[i/byteSize] & mask;
-    mask >>= 1;
-    if (i % byteSize == byteSize - 1) {
-      mask = 0x80;
-    }
-  }
-}
 
-
-
-template <typename T> void writeTo(std::ostream &ofs, T val) {
+template <typename T>
+inline void writeTo(std::ostream &ofs, T val) {
   ofs.write(reinterpret_cast<char*>(&val), sizeof(T));
 }
 
 
 
-template <typename T> void readFrom(std::istream &ifs, T* val) {
+template <typename T>
+inline void readFrom(std::istream &ifs, T* val) {
   ifs.read(reinterpret_cast<char*>(val), sizeof(T));
 }
 
 
 
 template <typename T>
-std::istream& operator>>(std::istream& ifs, std::vector<T>& vec) {
+inline std::istream& operator>>(std::istream& ifs, std::vector<T>& vec) {
   uint32_t curSize, size;
   curSize = vec.size();
   readFrom(ifs, &size);
@@ -68,7 +70,7 @@ std::istream& operator>>(std::istream& ifs, std::vector<T>& vec) {
 
 
 template <typename T>
-std::ostream& operator<<(std::ostream& ofs, std::vector<T>& vec) {
+inline std::ostream& operator<<(std::ostream& ofs, std::vector<T>& vec) {
   writeTo(ofs, static_cast<uint32_t>(vec.size()));
   ofs.write(reinterpret_cast<char*>(&vec[0]), vec.size()*sizeof(T));
   return ofs;
@@ -76,7 +78,7 @@ std::ostream& operator<<(std::ostream& ofs, std::vector<T>& vec) {
 
 
 
-std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
+inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
   writeTo(ofs, e.inZone);
   writeTo(ofs, e.docIdOffset);
   writeTo(ofs, e.postingOffset);
@@ -86,7 +88,7 @@ std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
 
 
 
-std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
+inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
   readFrom(ifs, &e.inZone);
   readFrom(ifs, &e.docIdOffset);
   readFrom(ifs, &e.postingOffset);
@@ -127,7 +129,7 @@ std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
 
 
 
-uint32_t readFromEnd(std::ifstream& ifs) {
+inline uint32_t readFromEnd(std::ifstream& ifs) {
   uint32_t res;
   auto curPos = ifs.tellg();
   ifs.seekg(-4, ifs.end); // sizeof(uint32_t) == 4
@@ -135,6 +137,7 @@ uint32_t readFromEnd(std::ifstream& ifs) {
   ifs.seekg(curPos, ifs.beg);
   return res;
 }
+
 
 
 #endif //

@@ -10,6 +10,7 @@
 #include "tokenizer.hpp"
 #include "normalizer.hpp"
 #include "porter2_stemmer.h"
+#include "../../../contrib/leveldb/include/leveldb/db.h"
 
 
 uint32_t stou(const std::string& str) {
@@ -524,23 +525,55 @@ void Indexer::_mergeIndexes() {
 
 int main(int argc, char *argv[])
 {
-  const char *configPath;
-  if (argc == 2) {
-    configPath = argv[1];
-  }
-  else {
-    std::cout << "Usage: '" << argv[0] << "' path_to_config" << std::endl;
+//  const char *configPath;
+//  if (argc == 2) {
+//    configPath = argv[1];
+//  }
+//  else {
+//    std::cout << "Usage: '" << argv[0] << "' path_to_config" << std::endl;
+//    return 1;
+//  }
+//  try {
+//    Common::init_locale("en_US.UTF-8");
+//    Index::Config config(configPath);
+//    Indexer indexer(config);
+//    indexer.cook();
+//  }
+//  catch (std::exception& e) {
+//    std::cerr << "Catch the exception: " << e.what() << std::endl;
+//  }
+  //
+  leveldb::DB* db;
+  leveldb::Options options;
+  options.create_if_missing = true;
+  //
+  leveldb::Status status = leveldb::DB::Open(options, "./testdb", &db);
+  if (!status.ok()) {
+    std::cerr << "Unable to open/create test database './testdb'" << std::endl;
+    std::cerr << status.ToString() << std::endl;
     return 1;
   }
-  try {
-    Common::init_locale("en_US.UTF-8");
-    Index::Config config(configPath);
-    Indexer indexer(config);
-    indexer.cook();
-  }
-  catch (std::exception& e) {
-    std::cerr << "Catch the exception: " << e.what() << std::endl;
-  }
+  //
+  std::string value = "rocket";
+  std::ostringstream valueStream;
+  int size = 4;
+  writeTo(valueStream, size);
+  valueStream << value;
+  status = db->Put(leveldb::WriteOptions(), "166", valueStream.str());
+  //
+  size = 0;
+  status = db->Get(leveldb::ReadOptions(), "166", &value);
+  std::istringstream iValueStream(value);
+  readFrom(iValueStream, &size);
+  value.resize(size);
+  iValueStream.read(reinterpret_cast<char*>(&value[0]), value.size()*sizeof(char));
+  std::cout << value << std::endl;
+  //std::string title, enSub, time;
+  //iValueStream >> title;
+  //iValueStream >> enSub;
+  //iValueStream >> time;
+  //std::cout << title << enSub << time << std::endl;
+  delete db;
   //
   return 0;
 }

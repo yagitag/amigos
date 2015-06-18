@@ -1,10 +1,14 @@
 include_directories(${Search_SOURCE_DIR}/${INC_DIR}/indexer/)
 include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/tinyxml2/)
 include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/murmur_hash/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/include/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/include/leveldb/)
 include_directories(${Indexer_SOURCE_DIR}/${INC_DIR}/)
 
-add_library(index index_struct.cpp)
 add_executable(indexer indexer.cpp)
+add_library(index index_struct.cpp)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 if (NOT Boost_FOUND)
@@ -14,4 +18,4 @@ else()
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-target_link_libraries(indexer index murmur_hash tinyxml2 common ${Boost_LIBRARIES})
+target_link_libraries(indexer leveldb index murmur_hash tinyxml2 common ${Boost_LIBRARIES})
