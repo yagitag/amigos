@@ -423,7 +423,7 @@ bool compareSizes(const std::vector<Entry>& v1, const std::vector<Entry>& v2) {
 
 
 
-void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output) {
+void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output) {
   if (input.empty()) return;
   size_t step = 100;
   std::sort(input.begin(), input.end(), compareSizes);
