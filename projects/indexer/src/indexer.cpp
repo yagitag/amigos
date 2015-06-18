@@ -123,6 +123,8 @@ size_t DynDocStorage::size() {
 DynPostingStore::DynPostingStore(const Index::Config& config) :
   _path(config.indexDataPath + config.postingsFile)
 {
+  _commonSize = 0;
+  _tZonesCnt = config.textZones.size();
   std::cout << "Loading posting storage..." << std::endl;
   try {
     _load(_path);
@@ -139,6 +141,8 @@ DynPostingStore::DynPostingStore(const Index::Config& config) :
 
 DynPostingStore::~DynPostingStore() {
   std::cout << "Saving posting storage..." << std::endl;
+  std::cout << _ofs.tellp() << std::endl;
+  std::cout << _postingSizes.size() << std::endl;
   _ofs << _postingSizes;
   writeTo(_ofs, _commonSize);
 }

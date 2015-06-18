@@ -107,7 +107,9 @@ namespace Index {
   class DocStorage
   {
     public:
-      DocStorage(const Config& config) {
+      DocStorage(const Config& config) :
+        _nZones(config.numZones.size()), _tZonesWCnt(config.textZones.size())
+      {
         _load(config.indexDataPath + config.docStoreFile);
       }
       uint32_t getDocId(uint32_t docIdOfs) const {
@@ -164,9 +166,9 @@ namespace Index {
       void configure(const std::string& pathToConfig);
       uint32_t findTknIdx(const std::string& word);
       uint32_t getDocId(const Entry& entry);
-      uint32_t getNZone(const Entry& entry, uint8_t nZoneId); 
+      uint32_t getNZone(const Entry& entry, uint8_t nZoneId);
       std::vector<Entry> getEntries(uint32_t tknIdx);
-      double getIDF(uint32_t tknIdx, uint8_t tZoneId);
+      //double getIDF(uint32_t tknIdx, uint8_t tZoneId);
       double getTF(const Entry& entry, uint8_t tZoneId);
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
       std::vector<Posting> getFullPosting(const Entry& entry);
@@ -177,7 +179,7 @@ namespace Index {
 
       const Config* _pConfig;
       std::vector<InvIdxItem> _invIdx;
-      std::vector< std::vector<uint16_t> > _idf;
+      //std::vector< std::vector<uint16_t> > _idf;
       PostingStorage* _pPostingStore;
       DocStorage* _pDocStore;
       DocDatabase _docDB;

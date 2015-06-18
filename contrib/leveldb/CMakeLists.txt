@@ -186,65 +186,65 @@ set_target_properties(leveldb PROPERTIES
   VERSION ${VERSION_STRING}
   SOVERSION ${VERSION_MAJOR}
   )
-
-add_library(leveldb_static STATIC ${SRCS} ${HDRS} ${SNAPPY_SRCS} ${SNAPPY_HDRS})
-
+#
+#add_library(leveldb_static STATIC ${SRCS} ${HDRS} ${SNAPPY_SRCS} ${SNAPPY_HDRS})
+#
 find_package(Threads)
 target_link_libraries(leveldb ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
-target_link_libraries(leveldb_static ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
-
+#target_link_libraries(leveldb_static ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+#
 ###
 # TESTS
 ###
-
-set(TESTHARNESS_SRCS
-  util/testutil.cc
-  util/testharness.cc
-)
-set(TESTHARNESS_HDRS
-  util/testutil.h
-  util/testharness.h
-)
-
-add_library(leveldb-testharness STATIC ${TESTHARNESS_SRCS})
-
-macro(leveldb_tests)
-  foreach(t ${ARGN})
-    get_filename_component(_tname ${t} NAME_WE)
-    add_executable(${_tname} ${t})
-    target_link_libraries(${_tname}
-      leveldb-testharness
-      leveldb_static
-      )
-    add_test(NAME ${_tname}
-      COMMAND $<TARGET_FILE:${_tname}>)
-  endforeach()
-endmacro()
-
-leveldb_tests(
-  util/arena_test.cc
-  db/autocompact_test.cc
-  util/bloom_test.cc
-  ${CAPI_TEST}
-  util/cache_test.cc
-  util/coding_test.cc
-  db/corruption_test.cc
-  util/crc32c_test.cc
-  db/db_test.cc
-  db/dbformat_test.cc
-  util/env_test.cc
-  db/filename_test.cc
-  table/filter_block_test.cc
-  issues/issue178_test.cc
-  issues/issue200_test.cc
-  db/log_test.cc
-  db/skiplist_test.cc
-  table/table_test.cc
-  db/version_edit_test.cc
-  db/version_set_test.cc
-  db/write_batch_test.cc
-  db/db_bench.cc
-  helpers/memenv/memenv_test.cc
-)
+#
+#set(TESTHARNESS_SRCS
+#  util/testutil.cc
+#  util/testharness.cc
+#)
+#set(TESTHARNESS_HDRS
+#  util/testutil.h
+#  util/testharness.h
+#)
+#
+#add_library(leveldb-testharness STATIC ${TESTHARNESS_SRCS})
+#
+#macro(leveldb_tests)
+#  foreach(t ${ARGN})
+#    get_filename_component(_tname ${t} NAME_WE)
+#    add_executable(${_tname} ${t})
+#    target_link_libraries(${_tname}
+#      leveldb-testharness
+#      leveldb_static
+#      )
+#    add_test(NAME ${_tname}
+#      COMMAND $<TARGET_FILE:${_tname}>)
+#  endforeach()
+#endmacro()
+#
+#leveldb_tests(
+#  util/arena_test.cc
+#  db/autocompact_test.cc
+#  util/bloom_test.cc
+#  ${CAPI_TEST}
+#  util/cache_test.cc
+#  util/coding_test.cc
+#  db/corruption_test.cc
+#  util/crc32c_test.cc
+#  db/db_test.cc
+#  db/dbformat_test.cc
+#  util/env_test.cc
+#  db/filename_test.cc
+#  table/filter_block_test.cc
+#  issues/issue178_test.cc
+#  issues/issue200_test.cc
+#  db/log_test.cc
+#  db/skiplist_test.cc
+#  table/table_test.cc
+#  db/version_edit_test.cc
+#  db/version_set_test.cc
+#  db/write_batch_test.cc
+#  db/db_bench.cc
+#  helpers/memenv/memenv_test.cc
+#)
 
 # TODO: memenv_test

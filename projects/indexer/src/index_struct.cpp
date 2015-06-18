@@ -166,8 +166,11 @@ std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
 
 void PostingStorage::_load(const std::string& path) {
   _ifs.open(path, std::ios::in | std::ios::binary);
+  if (!_ifs.is_open()) { 
+    throw Index::Exception("Cannot open '" + path + "'");
+  }
   _commonSize = readFromEnd(_ifs);
-  _ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
+  _ifs.seekg((_commonSize + 1) * sizeof(uint16_t), _ifs.beg);
   _ifs >> _postingSizes;
   //_ifs.close();
   //_ofs.open(path, std::ios::out | std::ios::binary);
@@ -190,7 +193,7 @@ void PostingStorage::_load(const std::string& path) {
 void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
   std::ifstream ifs(dataPath, std::ios::in | std::ifstream::binary);
   if (!ifs.is_open()) {
-    throw Exception("Cannot open document storage");
+    throw Exception("Cannot open '" + dataPath + "'");
   }
   uint32_t nZonesCnt, tZonesCnt;
   readFrom(ifs, &nZonesCnt);
@@ -269,6 +272,16 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   _pPostingStore = new PostingStorage(*_pConfig);
   _pDocStore = new DocStorage(*_pConfig);
   _docDB.open(_pConfig->indexDataPath + _pConfig->documentDb);
+  std::ifstream ifs(_pConfig->indexDataPath + _pConfig->invertIndexFile, std::ios::in | std::ios::binary);
+  uint32_t size = readFromEnd(ifs);
+  _invIdx.resize(size);
+  for (auto& item: _invIdx) {
+    item.read(ifs);
+  }
+  //_idf.resize(_config.textZones.size());
+  //for (auto vec: _idf) {
+  //  vec.resize(_invIdx.size());
+  //}
 }
 
 
@@ -287,6 +300,13 @@ uint32_t InvertIndex::findTknIdx(const std::string& word) {
   tmp.tokId = MurmurHash2(word.data(), word.size());
   return std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp, compareInvIdxItem) - _invIdx.begin();
 }
+
+
+
+std::vector<Entry> InvertIndex::getEntries(uint32_t tokId) {
+  return _invIdx[tokId].entries;
+}
+
 
 
 
@@ -316,9 +336,9 @@ double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
 
 
 
-double InvertIndex::getIDF(uint32_t tknIdx, uint8_t tZoneId) {
-  return _idf[tZoneId][tknIdx];
-}
+//double InvertIndex::getIDF(uint32_t tknIdx, uint8_t tZoneId) {
+//  return _idf[tZoneId][tknIdx];
+//}
 
 
 
