@@ -20,7 +20,8 @@ int main()
  //   cout << tok.get_str(here)  << endl;  
     //string word = "ПоПа";
     //string query = "ПоПа пошла ПОГУЛЯТЬ!!11 ПОПА нашла пирожок ;)";
-    string query = "An object of class locale also stores a locale name as an object of class string. Using an invalid locale name to construct a locale facet or a locale object throws an object of class !";
+    //string query = "An object of class locale also stores a locale name as an object of class string. Using an invalid locale name to construct a locale facet or a locale object throws an object of class !";
+    string query = "   ";
     //Porter2Stemmer::stem(word); 
 //    cout << word << endl;
     //Common::init_locale("ru_RU.UTF8");

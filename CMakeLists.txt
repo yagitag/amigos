@@ -13,6 +13,7 @@ include_directories(${INC_DIR}/common/)
 
 add_subdirectory(projects/common)
 add_subdirectory(projects/indexer)
+add_subdirectory(projects/searcher)
 add_subdirectory(contrib/tinyxml2)
 add_subdirectory(contrib/murmur_hash)
 add_subdirectory(contrib/leveldb)
