@@ -390,8 +390,8 @@ void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>
   size_t i1, i2;
   i1 = i2 = 0;
   std::vector<Entry> v1(common.size());
-  for (size_t i = 0; i < res.size(); ++i) {
-    entries[i] = res[i].front();
+  for (size_t i = 0; i < common.size(); ++i) {
+    v1[i] = common[i].front();
   }
   std::vector<Entry>& v2 = entries;
   try {
