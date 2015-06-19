@@ -38,7 +38,7 @@ void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, s
         }
     }
 }
-
+/*
 size_t get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
 {
     if (window_size > MAX_WINDOW_SIZE) window_size = MAX_WINDOW_SIZE;
@@ -52,7 +52,6 @@ size_t get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
     set< size_t > wordsId_in_passage;
     for( ; it != all_pos.end(); ++it )
     {
-        
         new_dist = it->first - start;
         if( new_dist >= window_size )
         {
@@ -60,7 +59,7 @@ size_t get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
         }
     }
 }
-
+*/
 size_t get_doc_rank( InvertIndex &index, const vector<Entry> &entries )
 {
     // для каждой зоны собираем упорядоченный список пар позиция-энтрис
