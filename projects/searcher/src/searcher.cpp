@@ -13,16 +13,18 @@ void Searcher::configure( const string& path_to_config )
 void Searcher::search( const vector< string > &tokens, std::vector<Document> &docs )
 {
     // это вектор векторов Энтрисов!
-    vector< vector<Entry> > enties_by_token;
+    vector< vector<Entry> > entries_by_token;
     for (size_t i = 0; i < tokens.size(); ++i )
     {
         uint32_t tknId = index.findTknIdx( tokens[i] );
-        enties_by_token.push_back(index.getEntries(tknId));
+        entries_by_token.push_back(index.getEntries(tknId));
     }
 
     // а это еще один вектор векторов Энтрисов
     vector< vector<Entry> > entries_by_doc;
-    intersectEntries( enties_by_token, entries_by_doc);
+    intersectEntries( entries_by_token, entries_by_doc);
+    std::cout << "entries_by_token: "  << entries_by_token.size() << std::endl;
+    std::cout << "entries_by_doc: "  << entries_by_doc.size() << std::endl;
 
     for ( size_t i = 0; i < entries_by_doc.size(); ++i )
     {
