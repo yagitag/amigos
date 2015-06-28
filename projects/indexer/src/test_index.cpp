@@ -22,26 +22,28 @@ int main(int argc, char *argv[])
     Index::Config config(configPath);
     //
     std::string word;
+    Index::RawDoc doc;
+    std::vector<Index::Entry> entries;
+    std::vector<Index::Posting> postings;
     while (std::cin >> word) {
       auto tokId = index.findTknIdx(word);
       if (tokId != Index::InvertIndex::unexistingToken) {
-        std::vector<Index::Entry> entries = index.getEntries(tokId);
+        index.getEntries(tokId, &entries);
         uint32_t docId;
         for (auto& entry: entries) {
           docId = index.getDocId(entry);
           std::cout << docId << std::endl;
-          auto doc = index.getRawDoc(docId);
-          std::cout << "VIDEO_ID:\t" << doc->videoId << std::endl;
-          std::cout << "TITLE:\t" << doc->title << std::endl;
-          std::vector< std::pair<std::string,double> > phrases;
-          doc->getPhrases(phrases);
-          for (const auto& phrase: phrases) {
-            std::cout << phrase.second << ": " << phrase.first << std::endl;
-          }
-          delete doc;
+          index.getRawDoc(docId, &doc);
+          std::cout << "VIDEO_ID:\t" << doc.videoId << std::endl;
+          std::cout << "TITLE:\t" << doc.title << std::endl;
+          //std::vector< std::pair<std::string,double> > phrases;
+          //doc->getPhrases(phrases);
+          //for (const auto& phrase: phrases) {
+          //  std::cout << phrase.second << ": " << phrase.first << std::endl;
+          //}
           std::cout << "--------------------------------------------------------" << std::endl;
-          std::vector<Index::Posting> postings;
-          postings = index.getFullPosting(entry);
+          postings.clear();
+          index.getFullPosting(entry, &postings);
           for (size_t i = 0; i < postings.size(); ++i) {
             std::cout << std::left << std::setw(15) << config.textZones[i]->name;
             for (auto it = postings[i].begin; it != postings[i].end; ++it) {

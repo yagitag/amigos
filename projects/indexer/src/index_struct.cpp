@@ -148,8 +148,8 @@ uint16_t PostingStorage::getPostingSize(uint32_t offset) const {
 
 
 
-std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
-  std::vector<Posting> res(_tZonesCnt);
+void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* res) {
+  res->resize(_tZonesCnt);
   uint32_t po = entry.postingOffset;
   uint32_t pso = entry.postingsSizeOffset;
   for (size_t i = 0; i < _tZonesCnt; ++i) {
@@ -157,10 +157,9 @@ std::vector<Posting> PostingStorage::getFullPosting(const Entry& entry) {
       //Posting np(&_postingStore[po], &_postingStore[po] + _postingSizes[pso]);
       Posting np(_ifs, po * sizeof(uint16_t), _postingSizes[pso]);
       po += _postingSizes[pso++];
-      res[i] = np;
+      (*res)[i] = np;
     }
   }
-  return res;
 }
 
 
@@ -305,8 +304,9 @@ uint32_t InvertIndex::findTknIdx(const std::string& word) {
 
 
 
-std::vector<Entry> InvertIndex::getEntries(uint32_t tokId) {
-  return _invIdx[tokId].entries;
+void InvertIndex::getEntries(uint32_t tknIdx, std::vector<Entry>* res) {
+  res->resize(_invIdx[tknIdx].entries.size());
+  std::copy(_invIdx[tknIdx].entries.begin(), _invIdx[tknIdx].entries.end(), res->begin());
 }
 
 
@@ -324,22 +324,22 @@ uint32_t InvertIndex::getNZone(const Entry& entry, uint8_t nZoneId) {
 
 
 
-double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
-  uint8_t offset = 0;
-  for (size_t i = 0; i < tZoneId; ++i) {
-    if (i2mask[i] & entry.inZone) {
-      ++offset;
-    }
-  }
-  double postingSize = _pPostingStore->getPostingSize(entry.postingOffset + offset);
-  double zoneSize = _pDocStore->getTZoneWCnt(entry.docIdOffset, tZoneId);
-  return postingSize / zoneSize;
-}
+//double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
+//  uint8_t offset = 0;
+//  for (size_t i = 0; i < tZoneId; ++i) {
+//    if (i2mask[i] & entry.inZone) {
+//      ++offset;
+//    }
+//  }
+//  double postingSize = _pPostingStore->getPostingSize(entry.postingOffset + offset);
+//  double zoneSize = _pDocStore->getTZoneWCnt(entry.docIdOffset, tZoneId);
+//  return postingSize / zoneSize;
+//}
 
 
 
-std::vector<Posting> InvertIndex::getFullPosting(const Entry& entry) {
-  return _pPostingStore->getFullPosting(entry);
+void InvertIndex::getFullPosting(const Entry& entry, std::vector<Posting>* res) {
+  _pPostingStore->getFullPosting(entry, res);
 }
 
 
@@ -350,8 +350,8 @@ std::vector<Posting> InvertIndex::getFullPosting(const Entry& entry) {
 
 
 
-RawDoc* InvertIndex::getRawDoc(uint32_t docId) {
-  return _docDB.getDoc(docId);
+void InvertIndex::getRawDoc(uint32_t docId, RawDoc* res) {
+  _docDB.getDoc(docId, res);
 }
 
 
@@ -388,7 +388,7 @@ inline size_t jump(std::vector<Entry>& vec, Entry& entry, size_t pos, size_t ste
 
 
 
-void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>& entries, std::vector< std::vector<Entry> >& res, size_t step) {
+void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>& entries, std::vector< std::vector<Entry> >* res, size_t step) {
   size_t i1, i2;
   i1 = i2 = 0;
   std::vector<Entry> v1(common.size());
@@ -406,10 +406,10 @@ void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>
         i2 = jump(v2, v1[i1], i2, step);
       }
       else {
-        res.push_back(std::vector<Entry>());
-        std::copy(common[i1].begin(), common[i1].end(), std::back_inserter(res.back()));
-        res.back().push_back(v2[i2]);
-        //res.push_back(v1[i1]);
+        res->push_back(std::vector<Entry>());
+        std::copy(common[i1].begin(), common[i1].end(), std::back_inserter(res->back()));
+        res->back().push_back(v2[i2]);
+        //res->push_back(v1[i1]);
         ++i1; ++i2;
         if (i1 == v1.size() || i2 == v2.size()) return;
       }
@@ -426,29 +426,29 @@ bool compareSizes(const std::vector<Entry>& v1, const std::vector<Entry>& v2) {
 
 
 
-void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output) {
+void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >* output) {
   if (input.empty()) return;
   size_t step = 100;
   std::sort(input.begin(), input.end(), compareSizes);
-  output.push_back(std::vector<Entry>());
-  output.resize(input.front().size());
+  output->push_back(std::vector<Entry>());
+  output->resize(input.front().size());
   for (size_t i = 0; i < input.front().size(); ++i) {
-    output[i].push_back(input.front()[i]);
+    (*output)[i].push_back(input.front()[i]);
   }
   //
   std::vector< std::vector<Entry> > tmp;
   for (size_t i = 1; i < input.size(); ++i) {
     if (i % 2 == 1) {
       tmp.clear();
-      intersectMore(output, input[i], tmp, step);
+      intersectMore(*output, input[i], &tmp, step);
     }
     else if (i % 2 == 0) {
-      output.clear();
+      output->clear();
       intersectMore(tmp, input[i], output, step);
     }
   }
   if (input.size() % 2 == 0) {
-    output = tmp;
+    *output = tmp;
   }
 }
 
@@ -497,19 +497,19 @@ void writeStr(std::ostream& os, std::string& str) {
 
 
 
-RawDoc* DocDatabase::getDoc(uint32_t key) {
+bool DocDatabase::getDoc(uint32_t key, RawDoc* res) {
   std::string value;
   leveldb::Status status = _db->Get(leveldb::ReadOptions(), std::to_string(key), &value);
+  if (!status.ok()) return false;
   std::string title, enSub, time;
   std::istringstream iss(value);
   //
-  RawDoc* doc = new RawDoc();
-  readStr(iss, doc->videoId);
-  readStr(iss, doc->title);
-  readStr(iss, doc->subtitles);
-  readStr(iss, doc->time);
+  readStr(iss, res->videoId);
+  readStr(iss, res->title);
+  readStr(iss, res->subtitles);
+  readStr(iss, res->time);
   //
-  return doc;
+  return true;
 }
 
 

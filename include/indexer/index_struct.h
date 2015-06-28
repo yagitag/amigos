@@ -89,7 +89,7 @@ namespace Index {
       { _load(config.indexDataPath + config.postingsFile); }
       //Posting getPosting(uint32_t offset, uint8_t tZoneId);
       uint16_t getPostingSize(uint32_t offset) const;
-      std::vector<Posting> getFullPosting(const Entry& entry);
+      void getFullPosting(const Entry& entry, std::vector<Posting>* res);
       //friend std::istream& (::operator>>)(std::istream& ifs, PostingStorage& ps);
     protected:
       PostingStorage() { }
@@ -151,7 +151,7 @@ namespace Index {
       DocDatabase();
       ~DocDatabase();
       void open(const std::string& path);
-      RawDoc* getDoc(uint32_t key);
+      bool getDoc(uint32_t key, RawDoc* res);
       void putDoc(uint32_t key, RawDoc& doc);
     private:
       leveldb::DB *_db;
@@ -168,12 +168,12 @@ namespace Index {
       uint32_t findTknIdx(const std::string& word);
       uint32_t getDocId(const Entry& entry);
       uint32_t getNZone(const Entry& entry, uint8_t nZoneId);
-      std::vector<Entry> getEntries(uint32_t tknIdx);
+      void getEntries(uint32_t tknIdx, std::vector<Entry>* res);
       //double getIDF(uint32_t tknIdx, uint8_t tZoneId);
-      double getTF(const Entry& entry, uint8_t tZoneId);
+      //double getTF(const Entry& entry, uint8_t tZoneId);
       //Posting getPosting(const Entry& entry, uint8_t tZoneId);
-      std::vector<Posting> getFullPosting(const Entry& entry);
-      RawDoc* getRawDoc(uint32_t docId);
+      void getFullPosting(const Entry& entry, std::vector<Posting>* res);
+      void getRawDoc(uint32_t docId, RawDoc* res);
 
     private:
       //void _load();
@@ -187,7 +187,7 @@ namespace Index {
   };
 
 
-  void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >& output);
+  void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >* output);
 
 
   struct Exception : public std::exception

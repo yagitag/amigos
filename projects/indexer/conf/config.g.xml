@@ -18,10 +18,6 @@
     <optional>true</optional>
     <needSave>true</needSave>
   </zone>
-  <zone>
-    <name>keywords</name>
-    <optional>true</optional>
-  </zone>
 </text_zones>
 
 <!-- Для ранжирования -->
