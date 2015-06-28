@@ -394,6 +394,7 @@ void intersectMore(std::vector< std::vector<Entry> >& common, std::vector<Entry>
     v1[i] = common[i].front();
   }
   std::vector<Entry>& v2 = entries;
+  if (v1.empty() || v2.empty()) return;
   try {
     while (42) {
       if (v1[i1].docIdOffset < v2[i2].docIdOffset) {
@@ -436,9 +437,11 @@ void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vect
   std::vector< std::vector<Entry> > tmp;
   for (size_t i = 1; i < input.size(); ++i) {
     if (i % 2 == 1) {
+      tmp.clear();
       intersectMore(output, input[i], tmp, step);
     }
     else if (i % 2 == 0) {
+      output.clear();
       intersectMore(tmp, input[i], output, step);
     }
   }
