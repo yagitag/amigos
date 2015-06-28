@@ -280,11 +280,11 @@ void Indexer::_parseRawData() {
       throw Index::Exception("Cannot load xml file '" + filePath + "'");
     }
     try {
-      if (itemsCnt % checkInterval == checkInterval - 1 && !_hasSpace()) {
-        _flushToDisk();
-      }
       auto itemsTag = getNecessaryTag(&doc, "items");
       for (auto itemTag = itemsTag->FirstChildElement(); itemTag != 0 ; itemTag = itemTag->NextSiblingElement()) {
+        if (itemsCnt++ % checkInterval == checkInterval - 1 && !_hasSpace()) {
+          _flushToDisk();
+        }
         if (std::strcmp(itemTag->Name(), "item")) {
           std::string name = itemTag->Name();
           throw Index::Exception("There is an incorrect tag '" + name + "'");
@@ -295,7 +295,7 @@ void Indexer::_parseRawData() {
         //std::fill(numZones.begin(), numZones.end(), 0); нет смысла, они все заполняются
         //
         _extractNumZones(itemTag, numZones, zonesForSave);
-        if (numZones[3] == 2)  continue; //если английские сабы переведены, пропускаем их
+        if (numZones[3] == 1)  continue; //если английские сабы переведены, пропускаем их
         _extractTextZones(itemTag, wordsCnt, zonesForSave);
         extractZones(itemTag, _config.trashZones, fake, zonesForSave);
         //
