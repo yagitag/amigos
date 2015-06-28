@@ -181,7 +181,7 @@ def parseSub(text, info_map, langs = ('ru', 'en')):
     lang = info[1:3]
     result[lang]['type'] = info_map['subs_types'][info[5:9]]
     (text, time_info) = ('', '')
-    for m in re.finditer('<text start="(.*?)" dur="(.*?)">(.*?)</text>', data):
+    for m in re.finditer('<text start="(.*?)" dur="(.*?)">(.*?)</text>', data, re.S):
       time_info += "{0} {1}\n".format(m.group(1), m.group(2))
       text += m.group(3).replace('\n', ' ').replace('&amp;', '&') + '\n'
     result[lang]['time_info'] = wrapCDATA(time_info)
