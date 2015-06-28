@@ -161,6 +161,7 @@ namespace Index {
 
   class InvertIndex {
     public:
+      static const uint32_t unexistingToken;
       InvertIndex() : _pConfig(0), _pPostingStore(0), _pDocStore(0) { }
       ~InvertIndex();
       void configure(const std::string& pathToConfig);

@@ -24,27 +24,32 @@ int main(int argc, char *argv[])
     std::string word;
     while (std::cin >> word) {
       auto tokId = index.findTknIdx(word);
-      std::vector<Index::Entry> entries = index.getEntries(tokId);
-      uint32_t docId;
-      for (auto& entry: entries) {
-        docId = index.getDocId(entry);
-        std::cout << docId << std::endl;
-        auto doc = index.getRawDoc(docId);
-        std::cout << "VIDEO_ID:\t" << doc->videoId << std::endl;
-        std::cout << "TITLE:\t" << doc->title << std::endl;
-        delete doc;
-        std::cout << "--------------------------------------------------------" << std::endl;
-        std::vector<Index::Posting> postings;
-        postings = index.getFullPosting(entry);
-        for (size_t i = 0; i < postings.size(); ++i) {
-          std::cout << std::left << std::setw(15) << config.textZones[i]->name;
-          for (auto it = postings[i].begin; it != postings[i].end; ++it) {
-            std::cout << ' ' << *it;
+      if (tokId != Index::InvertIndex::unexistingToken) {
+        std::vector<Index::Entry> entries = index.getEntries(tokId);
+        uint32_t docId;
+        for (auto& entry: entries) {
+          docId = index.getDocId(entry);
+          std::cout << docId << std::endl;
+          auto doc = index.getRawDoc(docId);
+          std::cout << "VIDEO_ID:\t" << doc->videoId << std::endl;
+          std::cout << "TITLE:\t" << doc->title << std::endl;
+          delete doc;
+          std::cout << "--------------------------------------------------------" << std::endl;
+          std::vector<Index::Posting> postings;
+          postings = index.getFullPosting(entry);
+          for (size_t i = 0; i < postings.size(); ++i) {
+            std::cout << std::left << std::setw(15) << config.textZones[i]->name;
+            for (auto it = postings[i].begin; it != postings[i].end; ++it) {
+              std::cout << ' ' << *it;
+            }
+            std::cout << std::endl;
           }
-          std::cout << std::endl;
         }
-        std::cout << "--------------------------------------------------------" << std::endl;
       }
+      else {
+        std::cout << "NOTHING" << std::endl;
+      }
+      std::cout << "--------------------------------------------------------" << std::endl;
     }
   }
   catch (std::exception& e) {

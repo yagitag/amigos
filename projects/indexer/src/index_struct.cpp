@@ -15,6 +15,7 @@
 using namespace Index;
 
 const double EPSILON = std::numeric_limits<double>::epsilon();
+const uint32_t InvertIndex::unexistingToken = -1;
 
 
 
@@ -298,7 +299,8 @@ InvertIndex::~InvertIndex() {
 uint32_t InvertIndex::findTknIdx(const std::string& word) {
   InvIdxItem tmp;
   tmp.tokId = MurmurHash2(word.data(), word.size());
-  return std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp, compareInvIdxItem) - _invIdx.begin();
+  uint32_t pos = std::lower_bound(_invIdx.begin(), _invIdx.end(), tmp, compareInvIdxItem) - _invIdx.begin();
+  return (_invIdx[pos].tokId == tmp.tokId) ? pos : unexistingToken;
 }
 
 
