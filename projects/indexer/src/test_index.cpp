@@ -33,6 +33,11 @@ int main(int argc, char *argv[])
           auto doc = index.getRawDoc(docId);
           std::cout << "VIDEO_ID:\t" << doc->videoId << std::endl;
           std::cout << "TITLE:\t" << doc->title << std::endl;
+          std::vector< std::pair<std::string,double> > phrases;
+          doc->getPhrases(phrases);
+          for (const auto& phrase: phrases) {
+            std::cout << phrase.second << ": " << phrase.first << std::endl;
+          }
           delete doc;
           std::cout << "--------------------------------------------------------" << std::endl;
           std::vector<Index::Posting> postings;

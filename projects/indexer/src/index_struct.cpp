@@ -537,3 +537,21 @@ RawDoc::RawDoc(std::map<std::string,std::string>& zones) {
   time = zones["en_sub_time"];
   videoId = zones["video_id"];
 }
+
+
+
+void RawDoc::getPhrases(std::vector< std::pair<std::string,double> >& res) {
+  std::istringstream subsStream(subtitles), timeStream(time);
+  std::string tmpStr;
+  while (true) {
+    res.push_back(std::make_pair(std::string(), 0.0));
+    if (!std::getline(subsStream, res.back().first)) break;
+    if (!std::getline(timeStream, tmpStr)) {
+      throw Exception("There is less time items, than necessary");
+    }
+    res.back().second = std::stod(tmpStr);
+  }
+  if (std::getline(timeStream, tmpStr)) {
+    throw Exception("There is more time items, than necessary");
+  }
+}
