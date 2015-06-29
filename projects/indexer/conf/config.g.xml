@@ -100,6 +100,13 @@
   <path>/home/ag/yt_test/data/</path>
 </raw_data>
 
+<!--
+<conf_data>
+  <path>/home/ag/yt_test/conf/</path>
+  <stopwords_path>doc.db</stopwords_path>
+</conf_data>
+-->
+
 <index_data>
   <path>/home/ag/yt_test/index/</path>
   <document_database>doc.db</document_database>

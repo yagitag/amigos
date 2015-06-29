@@ -24,6 +24,11 @@ class Converter:
     self.openNewFile(True)
 
 
+  def __del__(self):
+    self.char_cnt += self.fd.write('</items>\n')
+    self.fd.close()
+
+
   def saveInfoMapping(self):
     with open(self.info_mapping_file, 'w') as fd:
       json.dump(self.info_map, fd, sort_keys = True, indent = 2)
@@ -42,7 +47,6 @@ class Converter:
     if not is_first_time:
       self.char_cnt += self.fd.write('</items>\n')
       self.fd.close()
-      raise Exception
     self.fd = open(self.results_path + '/' + str(int(time.time())) + ".xml", 'w')
     self.char_cnt += self.fd.write('<?xml version="1.0" encoding="utf-8" ?>\n')
     self.char_cnt += self.fd.write('<items>\n')
