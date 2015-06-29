@@ -3,6 +3,7 @@
 #include<string>
 #include<vector>
 #include "../../../include/indexer/index_struct.h"
+#include "../../../include/ranker/ranker.hpp"
 
 struct Document
 {
@@ -14,7 +15,7 @@ struct Document
 class Searcher
 {
     Index::InvertIndex index;
-//    Ranker ranker;
+    Ranker ranker;
 
 public:
     Searcher() { };

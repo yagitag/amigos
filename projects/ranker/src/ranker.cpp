@@ -2,6 +2,7 @@
 #include "../../../include/indexer/index_struct.h"
 #include <utility> 
 #include <set> 
+#include <algorithm>
 
 using namespace std;
 using namespace Index;
@@ -14,7 +15,8 @@ void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, s
     for( size_t i = 0; i < entries.size(); ++i )
     {
         const Entry &entry = entries[i];
-        std::vector<Posting> postings_by_zone = index.getFullPosting(entry);
+        std::vector<Posting> postings_by_zone;
+        index.getFullPosting(entry, &postings_by_zone);
         Posting postings = postings_by_zone[zoneId]; //check it!!!
         
         list< pair< uint16_t , size_t > >::iterator it_list = positions.begin();
@@ -29,7 +31,7 @@ void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, s
                 entry_pos++;
             }
         }
-        if( entry_pos != postings.end )
+            if( entry_pos != postings.end )
         {
             for( ; entry_pos != postings.end; ++entry_pos )
             {
@@ -38,58 +40,101 @@ void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, s
         }
     }
 }
-/*
-size_t get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
+
+float calculate_bonus(list< pair< uint16_t , size_t > >::iterator &start_w, list< pair< uint16_t , size_t > >::iterator &end_w, size_t window_size)
+{
+    set< size_t > wordsId_in_passage;
+    for( list< pair< uint16_t , size_t > >::iterator it = start_w; it != end_w; ++it )
+        wordsId_in_passage.insert(it->second);   
+    return wordsId_in_passage.size() >= window_size ? 1000 : 200.0*float(wordsId_in_passage.size())/float(window_size); // MAGIC!!!!
+}
+
+float get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
 {
     if (window_size > MAX_WINDOW_SIZE) window_size = MAX_WINDOW_SIZE;
     if (all_pos.size() == 0) return 0;
     
-    get_rank(list< pair< uint16_t , size_t > >::iteraor it = all_pos.begin();
-    uint16_t start, end;
-    start = end = it->first;
-    int16_t old_dist = end-start;
-    int16_t new_dist = end-start;
-    set< size_t > wordsId_in_passage;
-    for( ; it != all_pos.end(); ++it )
+    //list< pair< uint16_t , size_t > >::iterator it = all_pos.begin();
+    list< pair< uint16_t , size_t > >::iterator start_w, end_w;
+    start_w = end_w = all_pos.begin();
+  //  int16_t old_dist = end-start;
+  //  int16_t new_dist = end-start;
+    //set< size_t > wordsId_in_passage;
+    float result = 0;
+    while(end_w != all_pos.end()) 
     {
-        new_dist = it->first - start;
-        if( new_dist >= window_size )
+        if(end_w->first - start_w->first < window_size)
         {
-            
+            if(++end_w != all_pos.end())
+            {
+                if(end_w->first - start_w->first < window_size)
+                {
+                    continue;
+                }
+                else
+                {
+                    result += calculate_bonus(start_w, end_w, window_size);
+                    ++start_w;
+                }
+            }
+            else
+            {
+                result += calculate_bonus(start_w, end_w, window_size); // O M G !!!?
+            }
+        }
+        else
+        {
+            ++start_w;
         }
     }
+    return result;
 }
-*/
-size_t get_doc_rank( InvertIndex &index, const vector<Entry> &entries )
+
+pair< float, float > get_doc_rank( InvertIndex &index, const vector<Entry> &entries )
 {
     // для каждой зоны собираем упорядоченный список пар позиция-энтрис
     list< pair< uint16_t , size_t > > all_pos_by_entries_title;
     get_positions_for_zone( index, entries, 0, all_pos_by_entries_title );
-    //size_t rank_title = get_rank(all_pos_by_entries_title, entries.size());
-
-    list< pair< uint16_t , size_t > > all_pos_by_entries_disc;
-    get_positions_for_zone( index, entries, 1, all_pos_by_entries_disc );
+    float rank_title = get_rank(all_pos_by_entries_title, entries.size());
+//    list< pair< uint16_t , size_t > > all_pos_by_entries_disc;
+//    get_positions_for_zone( index, entries, 1, all_pos_by_entries_disc );
     list< pair< uint16_t , size_t > > all_pos_by_entries_subs;
     get_positions_for_zone( index, entries, 2, all_pos_by_entries_subs );
+    float rank_subs = get_rank(all_pos_by_entries_subs, entries.size());
+
+    return std::make_pair( rank_title*5, rank_subs ); // MORE MAGIC !!!!!
 }
 
-void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vector<Entry> > &entries_by_doc, list< size_t > &docid_by_rank)
+bool title_only_more( pair <size_t, pair< float, float > > i, float val )
 {
-    // собираем упорядоченный список всех позиций всех входжений 
-    list< pair< uint16_t , size_t > > all_postings_by_entries;
+    return val <= i.second.first;
+}
+
+bool comp_title( pair <size_t, pair< float, float > > x, pair <size_t, pair< float, float > > y)
+{
+    return x.second.first > y.second.first;
+}
+
+bool comp_subs( pair <size_t, pair< float, float > > x, pair <size_t, pair< float, float > > y)
+{
+    return x.second.second > y.second.second;
+}
+
+void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vector<Entry> > &entries_by_doc, vector< pair <uint32_t, pair< float, float > > > &docid_by_rank)
+{
     for( size_t i = 0; i < entries_by_doc.size(); ++i )
     {
         const vector<Entry> &entries = entries_by_doc[i];
-        size_t doc_rank = get_doc_rank( index, entries );
-        /*
-        for ( Entry &entry : entries )
-        {
-            vector<Posting> postings = index.getFullPosting(entry);
-            for ( Posting &posting : postings )
-            {
-                insert( posting, i, all_postings_by_entries );
-            }
-        }
-*/
+        if( entries.empty() ) continue; // can not be ?
+        pair< float, float > doc_rank = get_doc_rank( index, entries );
+        auto docId = index.getDocId(entries[0]);
+        docid_by_rank.push_back(make_pair( docId, doc_rank ));
+
     }
+    sort(docid_by_rank.begin(), docid_by_rank.end(), comp_title);
+    auto it1 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 5000, title_only_more);
+    auto it2 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 500, title_only_more);
+    sort(docid_by_rank.begin(), it1, comp_subs);
+    sort(it1, it2, comp_subs);
+    sort(it2, docid_by_rank.end(), comp_subs);
 }

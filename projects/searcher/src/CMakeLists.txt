@@ -11,5 +11,6 @@ include_directories(${Indexer_SOURCE_DIR}/${INC_DIR}/)
 #add_executable(indexer indexer.cpp)
 add_library(searcher searcher.cpp)
 
-#target_link_libraries(indexer leveldb index murmur_hash tinyxml2 common ${Boost_LIBRARIES})
+#target_link_libraries(searcher ranker leveldb index murmur_hash tinyxml2 common ${Boost_LIBRARIES})
+target_link_libraries(searcher ranker)
 #target_link_libraries(index leveldb index murmur_hash tinyxml2 common ${Boost_LIBRARIES})
