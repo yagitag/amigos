@@ -12,6 +12,7 @@
 #include "MurmurHash2.h"
 #include "tinyxml2_ext.hpp"
 #include "../../../include/indexer/index_struct.h"
+#include "../../../include/common/bigramer.hpp"
 
 
 class DynDocStorage : public Index::DocStorage
@@ -93,6 +94,7 @@ class Indexer
     DynDocStorage _docStore;
     DynPostingStore _postingStore;
     Index::DocDatabase _docDB;
+    Common::BigRamer _bigramer;
 };
 
 

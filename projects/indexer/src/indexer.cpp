@@ -60,8 +60,10 @@ bool compareEntries(const Index::Entry& e1, const Index::Entry& e2) {
 
 
 DynDocStorage::DynDocStorage(const Index::Config& config) :
-  _path(config.indexDataPath + config.docStoreFile)
+  _path(config.indexDataPath + config.docStoreFile) 
 {
+  _nZones.resize(config.numZones.size());
+  _tZonesWCnt.resize(config.textZones.size());
   std::cout << "Loading document storage..." << std::endl;
   try {
     _load(_path);
@@ -69,8 +71,6 @@ DynDocStorage::DynDocStorage(const Index::Config& config) :
   catch (Index::Exception& e) {
     std::cout << "Catch the exception '" << e.what() << "' while loading document storage!" << std::endl;
     std::cout << "Creating a new one." << std::endl;
-    _nZones.resize(config.numZones.size());
-    _tZonesWCnt.resize(config.textZones.size());
   }
 }
 
@@ -200,9 +200,15 @@ Indexer::~Indexer() { }
 
 
 void Indexer::cook() {
-  _parseRawData();
-  _flushToDisk();
-  _mergeIndexes();
+  try {
+    _parseRawData();
+    _flushToDisk();
+    _mergeIndexes();
+  }
+  catch(Index::Exception& e) {
+    _flushToDisk();
+    throw e;
+  }
 }
 
 
@@ -294,6 +300,7 @@ void Indexer::_parseRawData() {
         std::fill(wordsCnt.begin(), wordsCnt.end(), 0);
         //std::fill(numZones.begin(), numZones.end(), 0); нет смысла, они все заполняются
         //
+        //TODO проверку на наличие дубля
         _extractNumZones(itemTag, numZones, zonesForSave);
         if (numZones[3] == 1)  continue; //если английские сабы переведены, пропускаем их
         _extractTextZones(itemTag, wordsCnt, zonesForSave);
@@ -526,9 +533,9 @@ void Indexer::_mergeIndexes() {
           itIdx->destroy();
           itIdx = indexes.erase(itIdx);
         }
-        else {
-          ++itIdx;
-        }
+      }
+      else {
+        ++itIdx;
       }
     }
     //std::sort(entries.begin(), entries.end(), EntriesComparator(_docStore, _postingStore));
