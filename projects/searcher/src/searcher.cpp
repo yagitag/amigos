@@ -37,12 +37,15 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
         Document doc;
         doc.videoId = raw_doc.videoId;
         doc.title = raw_doc.title;
+        doc.docId = docid_with_rank.first;
+/*
         std::vector< std::pair<std::string, double> > phrases;
         raw_doc.getPhrases( phrases );
         for( size_t i = 0; i < 3 && i < phrases.size(); ++i )
         {
             doc.subtitles.push_back(phrases[i]);
         }
+*/
         docs.push_back(doc);
     }
 
