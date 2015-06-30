@@ -29,5 +29,5 @@ public:
     void configure( const std::string &path_to_config );
     
     void search( const std::vector< std::string > &tokens, std::vector<Document> &docs_output );
-    void get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > snippets );
+    void get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > snippets, uint32_t snippets_num );
 };
