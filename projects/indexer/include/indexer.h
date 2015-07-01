@@ -40,8 +40,8 @@ class DynPostingStore : public Index::PostingStorage
   public:
     DynPostingStore(const Index::Config& config);
     ~DynPostingStore();
-    void addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset, uint32_t* postingsSizeOffset);
-    size_t size();
+    void addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset);
+    //size_t size();
     //void mergeWith(const std::string& path);
     //void copyPosting(std::ofstream& ofs);
     //friend std::ostream& operator<<(std::ostream& ofs, DynPostingStore& postingStore);
@@ -49,6 +49,7 @@ class DynPostingStore : public Index::PostingStorage
   protected:
     std::ofstream _ofs;
     std::string _path;
+    uint32_t _commonSize;
 };
 
 

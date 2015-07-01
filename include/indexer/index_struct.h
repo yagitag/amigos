@@ -38,6 +38,8 @@ namespace Index {
     std::string rawDataPath;
     std::string docStoreFile;
     std::string postingsFile;
+    std::string confDataPath;
+    std::string bigramerPath;
     std::string indexDataPath;
     std::string invertIndexFile;
     //
@@ -50,11 +52,10 @@ namespace Index {
 
   struct Entry
   {
-    Entry(uint32_t dOfs = 0, uint32_t pOfs = 0, uint32_t pSOfs = 0, uint8_t iz = 0) :
-      docIdOffset(dOfs), postingOffset(pOfs), postingsSizeOffset(pSOfs), inZone(iz) { }
+    Entry(uint32_t dOfs = 0, uint32_t pOfs = 0, uint8_t iz = 0) :
+      docIdOffset(dOfs), postingOffset(pOfs), inZone(iz) { }
     uint32_t docIdOffset;
     uint32_t postingOffset;
-    uint32_t postingsSizeOffset;
     uint8_t inZone;
   };
 
@@ -72,8 +73,7 @@ namespace Index {
   struct Posting
   {
     Posting() : begin(0), end(0) { }
-    //Posting(uint16_t* b, uint16_t* e) : begin(b), end(e) { }
-    Posting(std::istream& is, uint32_t seek, uint32_t size);
+    Posting(std::istream& is, uint32_t seek);
     const uint16_t* begin;
     const uint16_t* end;
     private:
@@ -88,7 +88,7 @@ namespace Index {
         //_ifs(config.indexDataPath + config.postingsFile, std::ios::in | std::ios::binary)
       { _load(config.indexDataPath + config.postingsFile); }
       //Posting getPosting(uint32_t offset, uint8_t tZoneId);
-      uint16_t getPostingSize(uint32_t offset) const;
+      //uint16_t getPostingSize(uint32_t offset) const;
       void getFullPosting(const Entry& entry, std::vector<Posting>* res);
       //friend std::istream& (::operator>>)(std::istream& ifs, PostingStorage& ps);
     protected:
@@ -98,8 +98,8 @@ namespace Index {
       //std::ofstream _ofs;
       std::ifstream _ifs;
       uint8_t _tZonesCnt;
-      uint32_t _commonSize;
-      std::vector<uint16_t> _postingSizes;
+      //uint32_t _commonSize;
+      //std::vector<uint16_t> _postingSizes;
   };
 
 

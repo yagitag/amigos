@@ -26,7 +26,6 @@ public:
     void    bigram2vec( string &string_for_bigraming, vector< string > &a_result );
     string  bigram2string( vector< string > &words_for_bigraming );
     string  bigram2string( string &string_for_bigraming );
-       
 };
 
 } // namespace Common

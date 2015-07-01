@@ -77,6 +77,10 @@ Config::Config(const std::string& configPath) {
     else if (tagName == "raw_data") {
       rawDataPath = getNecessaryTag(tag, "path")->GetText();
     }
+    else if (tagName == "conf_data") {
+      confDataPath = getNecessaryTag(tag, "path")->GetText();
+      bigramerPath = getNecessaryTag(tag, "stopwords_path")->GetText();
+    }
     else if (tagName == "index_data") {
       indexDataPath = getNecessaryTag(tag, "path")->GetText();
       invertIndexFile = getNecessaryTag(tag, "invert_index")->GetText();
@@ -127,11 +131,11 @@ Config::~Config() {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
-Posting::Posting(std::istream& is, uint32_t seek, uint32_t size) :
-  _data(new uint16_t[size], std::default_delete<uint16_t[]>())
-{
+Posting::Posting(std::istream& is, uint32_t seek) {
+  uint16_t size;
   is.seekg(seek, is.beg);
-  //_data.get()[2] = 3;
+  readFrom(is, &size);
+  _data = std::shared_ptr<uint16_t>(new uint16_t[size], std::default_delete<uint16_t[]>());
   is.read(reinterpret_cast<char*>(_data.get()), size*sizeof(uint16_t));
   begin = _data.get();
   end = begin + size;
@@ -142,21 +146,20 @@ Posting::Posting(std::istream& is, uint32_t seek, uint32_t size) :
 
 
 
-uint16_t PostingStorage::getPostingSize(uint32_t offset) const {
-  return _postingSizes[offset];
-}
+//uint16_t PostingStorage::getPostingSize(uint32_t offset) const {
+//  return _postingSizes[offset];
+//}
 
 
 
 void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* res) {
   res->resize(_tZonesCnt);
   uint32_t po = entry.postingOffset;
-  uint32_t pso = entry.postingsSizeOffset;
+  //uint32_t pso = entry.postingsSizeOffset;
   for (size_t i = 0; i < _tZonesCnt; ++i) {
     if (entry.inZone & i2mask[i]) {
-      //Posting np(&_postingStore[po], &_postingStore[po] + _postingSizes[pso]);
-      Posting np(_ifs, po * sizeof(uint16_t), _postingSizes[pso]);
-      po += _postingSizes[pso++];
+      Posting np(_ifs, po * sizeof(uint16_t));
+      po += (np.end - np.begin); //TODO сделать нормально
       (*res)[i] = np;
     }
   }
@@ -169,9 +172,9 @@ void PostingStorage::_load(const std::string& path) {
   if (!_ifs.is_open()) { 
     throw Index::Exception("Cannot open '" + path + "'");
   }
-  _commonSize = readFromEnd(_ifs);
-  _ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
-  _ifs >> _postingSizes;
+  //_commonSize = readFromEnd(_ifs);
+  //_ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
+  //_ifs >> _postingSizes;
   //_ifs.close();
   //_ofs.open(path, std::ios::out | std::ios::binary);
   //_ifs.read(reinterpret_cast<char*>(&_postingSizes[0]), size*sizeof(uint32_t));

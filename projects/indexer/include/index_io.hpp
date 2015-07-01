@@ -82,7 +82,6 @@ inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
   writeTo(ofs, e.inZone);
   writeTo(ofs, e.docIdOffset);
   writeTo(ofs, e.postingOffset);
-  writeTo(ofs, e.postingsSizeOffset);
   return ofs;
 }
 
@@ -92,7 +91,6 @@ inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
   readFrom(ifs, &e.inZone);
   readFrom(ifs, &e.docIdOffset);
   readFrom(ifs, &e.postingOffset);
-  readFrom(ifs, &e.postingsSizeOffset);
   return ifs;
 }
 

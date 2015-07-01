@@ -125,7 +125,7 @@ DynPostingStore::DynPostingStore(const Index::Config& config) :
 {
   _commonSize = 0;
   _tZonesCnt = config.textZones.size();
-  std::cout << "Loading posting storage..." << std::endl;
+  std::cout << "Init posting storage..." << std::endl;
   try {
     _load(_path);
   }
@@ -134,29 +134,26 @@ DynPostingStore::DynPostingStore(const Index::Config& config) :
     std::cout << "Creating a new one." << std::endl;
   }
   _ifs.close();
-  _ofs.open(_path, std::ios::out | std::ios::binary);
+  _ofs.open(_path, std::ios::app | std::ios::binary);
 }
 
 
 
 DynPostingStore::~DynPostingStore() {
-  std::cout << "Saving posting storage..." << std::endl;
+  std::cout << "Deinit posting storage..." << std::endl;
   std::cout << _ofs.tellp() << std::endl;
-  std::cout << _postingSizes.size() << std::endl;
-  _ofs << _postingSizes;
-  writeTo(_ofs, _commonSize);
 }
 
 
 
-void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset, uint32_t* postingsSizeOffset) {
+void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset) {
   *postingOffset = _commonSize;
-  *postingsSizeOffset = _postingSizes.size();
+  uint16_t size;
   for (auto& vec: zonesPosting) {
-    _postingSizes.push_back(vec.size());
-    _commonSize += _postingSizes.back();
+    _commonSize += (vec.size() + 1);
+    size = vec.size();
+    writeTo(_ofs, size);
     _ofs.write(reinterpret_cast<char*>(&vec[0]), vec.size()*sizeof(uint16_t));
-    //std::copy(vec.begin(), vec.end(), std::back_inserter(_postingStore));
   }
 }
 
@@ -192,6 +189,7 @@ Indexer::Indexer(const Index::Config& config, uint64_t maxMemoryUsage) :
   _config(config), _docStore(config), _postingStore(config)
 {
   _docDB.open(_config.indexDataPath + _config.documentDb);
+  _bigramer.configure(_config.confDataPath + _config.bigramerPath);
 }
 
 
@@ -355,30 +353,33 @@ void Indexer::_addToStatDict(const std::string& word) {
 
 void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt, std::map<std::string,std::string>& forSave) {
   uint16_t pos = 0;
-  std::vector<std::string> bufVec;
+  std::vector<std::string> terms;
+  std::vector<std::string> bterms;
   std::vector<std::string> zonesVec;
   extractZones(tiElem, _config.textZones, zonesVec, forSave);
   std::unordered_map< uint32_t,std::vector<uint16_t> > tmpDict;
   for (size_t zi = 0; zi < zonesVec.size(); ++zi) {
-    Common::terminate2vec(zonesVec[zi], bufVec);
-    for (auto& word : bufVec) {
+    Common::terminate2vec(zonesVec[zi], terms);
+    _bigramer.bigram2vec(terms, bterms);
+    for (auto& word : bterms) {
       _addToStatDict(word);
       ++wordsCnt[zi];
       auto tokId = MurmurHash2(word.data(), word.size());
       tmpDict[tokId].push_back(pos++);
     }
-    bufVec.clear();
+    bterms.clear();
+    terms.clear();
   }
-  uint32_t docOfs, posOfs, posSOfs;
+  uint32_t docOfs, posOfs;
   uint8_t inZone;
   std::vector< std::vector<uint16_t> > fzpBuf;
   //std::vector<bool> inZone(_config.textZones.size());
   for (const auto& pair : tmpDict) {
     inZone = 0;
     splitByZones(pair.second, wordsCnt, fzpBuf, inZone);
-    _postingStore.addTokenPosting(fzpBuf, &posOfs, &posSOfs);
+    _postingStore.addTokenPosting(fzpBuf, &posOfs);
     docOfs = _docStore.size();
-    _invIdx[pair.first].push_back(Index::Entry(docOfs, posOfs, posSOfs, inZone));
+    _invIdx[pair.first].push_back(Index::Entry(docOfs, posOfs, inZone));
     //std::fill(inZone.begin(), inZone.end(), false);
     fzpBuf.clear();
   }
@@ -442,6 +443,8 @@ void Indexer::_flushToDisk() {
     statistic_ofs << pair.first << " " << pair.second << std::endl;
   }
   _statDict.clear();
+  _entriesCnt = 0;
+  _charsCnt = 0;
 }
 
 
