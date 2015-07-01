@@ -429,8 +429,6 @@ void Indexer::_flushToDisk() {
   std::cout << "Flusing data to '" << path << "'..." << std::endl;
   std::ofstream ofs(path, std::ofstream::out | std::ofstream::binary);
   //
-  //ofs << _postingStore;
-  //_postingStore.clear();
   for (auto& pair: _invIdx) {
     writeIdxItem(ofs, pair.first, pair.second);
   }
@@ -456,8 +454,6 @@ class RawIndex {
       _size = readFromEnd(*_ifs);
       readNextToken();
     }
-    //RawIndex(const RawIndex& index) :
-    //  path(index.path), _ifs(path, std::ios::in | std::ifstream::binary), _postingOffset(index._postingOffset), _size(index._size) { }
     bool readNextToken() {
       if (_size-- == 0) {
         return false;
@@ -467,23 +463,10 @@ class RawIndex {
     }
     void destroy() {
       delete _ifs;
-      boost::filesystem::remove(path);
+      //boost::filesystem::remove(path);
     }
-    //uint32_t flushPostingTo(std::ostream& ofs) {
-    //  DynPostingStore dps;
-    //  *_ifs >> dps;
-    //  ofs << dps;
-    //  //_postingOffset = globPostingOffset;
-    //  //return dps.size();
-    //  return 0;
-    //}
     void readTokEntries(std::vector<Index::Entry>& entries) {
-      //size_t oldEntriesSize = entries.size();
       *_ifs >> entries;
-      //for (auto it = entries.begin() + oldEntriesSize; it != entries.end(); ++it) {
-      //  it->postingOffset += _postingOffset;
-      //  it->postingsSizeOffset += _postingSizeOffset;
-      //}
     }
 
     uint32_t curTok;
@@ -491,8 +474,6 @@ class RawIndex {
 
   private:
     std::ifstream* _ifs;
-    uint32_t _postingOffset;
-    uint32_t _postingSizeOffset;
     size_t _size;
 };
 
@@ -505,19 +486,16 @@ void Indexer::_mergeIndexes() {
   if (boost::filesystem::exists(path)) {
     paths.push_back(path);
   }
-  char sfx = '0';
-  while (boost::filesystem::exists(path + '.' + sfx)) {
-    paths.push_back(path + '.' + sfx);
+  int sfx = 0;
+  while (boost::filesystem::exists(path + '.' + std::to_string(sfx))) {
+    paths.push_back(path + '.' + std::to_string(sfx));
     ++sfx;
   }
   //
   std::ofstream ofs(path + ".tmp", std::ios::out | std::ofstream::binary);
   std::list<RawIndex> indexes;
-  //uint32_t globPostingOffset = 0;
   for (const auto& path: paths) {
     indexes.push_back(RawIndex(path));
-    //globPostingOffset += indexes.back().flushPostingTo(ofs, globPostingOffset);
-    //indexes.back().readNextToken();
   }
   //
   std::vector<Index::Entry> entries;
@@ -537,11 +515,8 @@ void Indexer::_mergeIndexes() {
           itIdx = indexes.erase(itIdx);
         }
       }
-      else {
-        ++itIdx;
-      }
+      ++itIdx;
     }
-    //std::sort(entries.begin(), entries.end(), EntriesComparator(_docStore, _postingStore));
     std::sort(entries.begin(), entries.end(), compareEntries);
     writeIdxItem(ofs, min, entries);
     entries.clear();
@@ -573,38 +548,5 @@ int main(int argc, char *argv[])
   catch (std::exception& e) {
     std::cerr << "Catch the exception: " << e.what() << std::endl;
   }
-  //
-  //leveldb::DB* db;
-  //leveldb::Options options;
-  //options.create_if_missing = true;
-  ////
-  //leveldb::Status status = leveldb::DB::Open(options, "./testdb", &db);
-  //if (!status.ok()) {
-  //  std::cerr << "Unable to open/create test database './testdb'" << std::endl;
-  //  std::cerr << status.ToString() << std::endl;
-  //  return 1;
-  //}
-  ////
-  //std::string value = "rocket";
-  //std::ostringstream valueStream;
-  //int size = 4;
-  //writeTo(valueStream, size);
-  //valueStream << value;
-  //status = db->Put(leveldb::WriteOptions(), "166", valueStream.str());
-  ////
-  //size = 0;
-  //status = db->Get(leveldb::ReadOptions(), "166", &value);
-  //std::istringstream iValueStream(value);
-  //readFrom(iValueStream, &size);
-  //value.resize(size);
-  //iValueStream.read(reinterpret_cast<char*>(&value[0]), value.size()*sizeof(char));
-  //std::cout << value << std::endl;
-  ////std::string title, enSub, time;
-  ////iValueStream >> title;
-  ////iValueStream >> enSub;
-  ////iValueStream >> time;
-  ////std::cout << title << enSub << time << std::endl;
-  //delete db;
-  //
   return 0;
 }

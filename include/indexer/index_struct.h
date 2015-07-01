@@ -65,7 +65,8 @@ namespace Index {
     void read(std::ifstream& ifs);
     //
     uint32_t tokId;
-    std::vector<Entry> entries;
+    uint64_t offset;
+    //std::vector<Entry> entries;
   };
 
 
@@ -180,6 +181,7 @@ namespace Index {
 
       const Config* _pConfig;
       std::vector<InvIdxItem> _invIdx;
+      std::ifstream _invIdxStream;
       //std::vector< std::vector<uint16_t> > _idf;
       PostingStorage* _pPostingStore;
       DocStorage* _pDocStore;
