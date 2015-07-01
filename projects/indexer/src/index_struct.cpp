@@ -238,7 +238,8 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
 
 void InvIdxItem::read(std::ifstream& ifs) {
   readFrom(ifs, &tokId);
-  ifs >> entries;
+  offset = ifs.tellg();
+  //ifs >> entries;
 }
 
 
@@ -275,11 +276,14 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   _pPostingStore = new PostingStorage(*_pConfig);
   _pDocStore = new DocStorage(*_pConfig);
   _docDB.open(_pConfig->indexDataPath + _pConfig->documentDb);
-  std::ifstream ifs(_pConfig->indexDataPath + _pConfig->invertIndexFile, std::ios::in | std::ios::binary);
-  uint32_t size = readFromEnd(ifs);
+  _invIdxStream.open(_pConfig->indexDataPath + _pConfig->invertIndexFile, std::ios::in | std::ios::binary);
+  if (!_invIdxStream.is_open()) {
+    throw Exception("Cannot open invert index file '" + _pConfig->indexDataPath + _pConfig->invertIndexFile + "'");
+  }
+  uint32_t size = readFromEnd(_invIdxStream);
   _invIdx.resize(size);
   for (auto& item: _invIdx) {
-    item.read(ifs);
+    item.read(_invIdxStream);
   }
   //_idf.resize(_config.textZones.size());
   //for (auto vec: _idf) {
@@ -308,8 +312,10 @@ uint32_t InvertIndex::findTknIdx(const std::string& word) {
 
 
 void InvertIndex::getEntries(uint32_t tknIdx, std::vector<Entry>* res) {
-  res->resize(_invIdx[tknIdx].entries.size());
-  std::copy(_invIdx[tknIdx].entries.begin(), _invIdx[tknIdx].entries.end(), res->begin());
+  //res->resize(_invIdx[tknIdx].entries.size());
+  //std::copy(_invIdx[tknIdx].entries.begin(), _invIdx[tknIdx].entries.end(), res->begin());
+  _invIdxStream.seekg(_invIdx[tknIdx].offset);
+  _invIdxStream >> *res;
 }
 
 
