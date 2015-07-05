@@ -79,7 +79,7 @@ inline std::ostream& operator<<(std::ostream& ofs, std::vector<T>& vec) {
 
 
 inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
-  writeTo(ofs, e.inZone);
+  ofs << e.zoneTf;
   writeTo(ofs, e.docIdOffset);
   writeTo(ofs, e.postingOffset);
   return ofs;
@@ -88,7 +88,7 @@ inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
 
 
 inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
-  readFrom(ifs, &e.inZone);
+  ifs >> e.zoneTf;
   readFrom(ifs, &e.docIdOffset);
   readFrom(ifs, &e.postingOffset);
   return ifs;

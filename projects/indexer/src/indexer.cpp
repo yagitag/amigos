@@ -146,7 +146,7 @@ DynPostingStore::~DynPostingStore() {
 
 
 
-void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint32_t* postingOffset) {
+void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint64_t* postingOffset) {
   *postingOffset = _commonSize;
   uint16_t size;
   for (auto& vec: zonesPosting) {
@@ -230,7 +230,7 @@ uint64_t estimateUMapSize(const std::unordered_map<K,V>& map) {
 bool Indexer::_hasSpace() {
   uint64_t curSize = estimateMapSize(_invIdx)
     + estimateUMapSize(_statDict)
-    + _entriesCnt * sizeof(Index::Entry)
+    + _entriesCnt * (sizeof(Index::Entry) + sizeof(double) * _config.textZones.size())
     + _charsCnt * sizeof(char);
     //+ _postingStore.size() * sizeof(uint16_t);
   return curSize < _maxMemSize;
@@ -318,8 +318,8 @@ void Indexer::_parseRawData() {
 
 
 
-void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, uint8_t& inZone) {
-  uint8_t zi = 0;
+void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, std::vector<double>& zoneTf) {
+  uint8_t zi = 0, inZone = 0;
   uint16_t offset = 0;
   bool isNewZone = true;
   for (const auto& val : posting) {
@@ -333,6 +333,14 @@ void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16
     }
     splitPosting.back().push_back(val - offset);
     isNewZone = false;
+  }
+  uint8_t i = 0;
+  for (size_t zi = 0; zi < zwCnt.size(); ++zi) {
+    if (Index::i2mask[zi] & inZone) {
+      zoneTf.push_back(static_cast<double>(splitPosting[i++].size()) / zwCnt[zi]);
+    } else {
+      zoneTf.push_back(0.);
+    }
   }
 }
 
@@ -370,17 +378,18 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
     bterms.clear();
     terms.clear();
   }
-  uint32_t docOfs, posOfs;
-  uint8_t inZone;
   std::vector< std::vector<uint16_t> > fzpBuf;
-  //std::vector<bool> inZone(_config.textZones.size());
   for (const auto& pair : tmpDict) {
-    inZone = 0;
-    splitByZones(pair.second, wordsCnt, fzpBuf, inZone);
-    _postingStore.addTokenPosting(fzpBuf, &posOfs);
-    docOfs = _docStore.size();
-    _invIdx[pair.first].push_back(Index::Entry(docOfs, posOfs, inZone));
-    //std::fill(inZone.begin(), inZone.end(), false);
+    // New Enty creation
+    std::vector<Index::Entry>& entries = _invIdx[pair.first];
+    entries.push_back(Index::Entry());
+    Index::Entry& entry = entries.back();
+    // New Entry initializion
+    splitByZones(pair.second, wordsCnt, fzpBuf, entry.zoneTf);
+    _postingStore.addTokenPosting(fzpBuf, &(entry.postingOffset));
+    entry.docIdOffset = _docStore.size();
+    //
+    //_invIdx[pair.first].push_back(entry);
     fzpBuf.clear();
   }
   _entriesCnt += tmpDict.size();
@@ -519,6 +528,7 @@ void Indexer::_mergeIndexes() {
     }
     std::sort(entries.begin(), entries.end(), compareEntries);
     writeIdxItem(ofs, min, entries);
+    for (auto& entry: entries) { entry.zoneTf.clear(); }
     entries.clear();
     ++size;
   }

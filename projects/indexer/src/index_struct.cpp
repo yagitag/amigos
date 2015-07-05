@@ -157,9 +157,9 @@ void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* re
   uint32_t po = entry.postingOffset;
   //uint32_t pso = entry.postingsSizeOffset;
   for (size_t i = 0; i < _tZonesCnt; ++i) {
-    if (entry.inZone & i2mask[i]) {
+    if (std::fabs(entry.zoneTf[i] - 0.0) > EPSILON) {
       Posting np(_ifs, po * sizeof(uint16_t));
-      po += (np.end - np.begin); //TODO сделать нормально
+      po += (np.end - np.begin + 1); //TODO сделать нормально
       (*res)[i] = np;
     }
   }
@@ -235,15 +235,6 @@ void DocStorage::_load(const std::string& dataPath, bool isAppendMode) {
 
 
 
-
-void InvIdxItem::read(std::ifstream& ifs) {
-  readFrom(ifs, &tokId);
-  offset = ifs.tellg();
-  //ifs >> entries;
-}
-
-
-
 bool compareInvIdxItem(const InvIdxItem& li, const InvIdxItem& ri) {
   return li.tokId < ri.tokId;
 }
@@ -283,7 +274,12 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   uint32_t size = readFromEnd(_invIdxStream);
   _invIdx.resize(size);
   for (auto& item: _invIdx) {
-    item.read(_invIdxStream);
+    _readInvIdxItem(_invIdxStream, &item);
+  }
+  for (size_t i = 1; i < _invIdx.size(); ++i) {
+    if (_invIdx[i-1].tokId >= _invIdx[i].tokId) {
+      std::cout << i << std::endl;
+    }
   }
   //_idf.resize(_config.textZones.size());
   //for (auto vec: _idf) {
@@ -333,17 +329,15 @@ uint32_t InvertIndex::getNZone(const Entry& entry, uint8_t nZoneId) {
 
 
 
-//double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
-//  uint8_t offset = 0;
-//  for (size_t i = 0; i < tZoneId; ++i) {
-//    if (i2mask[i] & entry.inZone) {
-//      ++offset;
-//    }
-//  }
-//  double postingSize = _pPostingStore->getPostingSize(entry.postingOffset + offset);
-//  double zoneSize = _pDocStore->getTZoneWCnt(entry.docIdOffset, tZoneId);
-//  return postingSize / zoneSize;
-//}
+double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
+  return entry.zoneTf[tZoneId];
+}
+
+
+
+double InvertIndex::getIDF(uint32_t tknIdx) {
+  return _invIdx[tknIdx].idf;
+}
 
 
 
@@ -353,14 +347,20 @@ void InvertIndex::getFullPosting(const Entry& entry, std::vector<Posting>* res) 
 
 
 
-//double InvertIndex::getIDF(uint32_t tknIdx, uint8_t tZoneId) {
-//  return _idf[tZoneId][tknIdx];
-//}
-
-
-
 void InvertIndex::getRawDoc(uint32_t docId, RawDoc* res) {
   _docDB.getDoc(docId, res);
+}
+
+
+
+void InvertIndex::_readInvIdxItem(std::ifstream& ifs, InvIdxItem* item) {
+  readFrom(ifs, &(item->tokId));
+  item->offset = ifs.tellg();
+  uint32_t entriesCnt;
+  readFrom(ifs, &entriesCnt);
+  item->idf = std::log(_invIdx.size() / static_cast<double>(entriesCnt));
+  uint32_t sizeofEntry = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(double) * _pConfig->textZones.size();
+  ifs.seekg(entriesCnt * sizeofEntry, std::ios::cur);
 }
 
 

@@ -49,23 +49,22 @@ namespace Index {
   };
 
 
-
   struct Entry
   {
-    Entry(uint32_t dOfs = 0, uint32_t pOfs = 0, uint8_t iz = 0) :
-      docIdOffset(dOfs), postingOffset(pOfs), inZone(iz) { }
+    //Entry(uint32_t dOfs = 0, uint32_t pOfs = 0/*, uint8_t iz = 0*/) :
+      //docIdOffset(dOfs), postingOffset(pOfs), inZone(iz) { }
+    //uint8_t inZone;
     uint32_t docIdOffset;
-    uint32_t postingOffset;
-    uint8_t inZone;
+    uint64_t postingOffset;
+    std::vector<double> zoneTf;
   };
 
 
   struct InvIdxItem
   {
-    void read(std::ifstream& ifs);
-    //
     uint32_t tokId;
     uint64_t offset;
+    double idf;
     //std::vector<Entry> entries;
   };
 
@@ -170,14 +169,15 @@ namespace Index {
       uint32_t getDocId(const Entry& entry);
       uint32_t getNZone(const Entry& entry, uint8_t nZoneId);
       void getEntries(uint32_t tknIdx, std::vector<Entry>* res);
-      //double getIDF(uint32_t tknIdx, uint8_t tZoneId);
-      //double getTF(const Entry& entry, uint8_t tZoneId);
-      //Posting getPosting(const Entry& entry, uint8_t tZoneId);
+      double getIDF(uint32_t tknIdx);
+      double getTF(const Entry& entry, uint8_t tZoneId);
+      Posting getPosting(const Entry& entry, uint8_t tZoneId);
       void getFullPosting(const Entry& entry, std::vector<Posting>* res);
       void getRawDoc(uint32_t docId, RawDoc* res);
 
     private:
       //void _load();
+      void _readInvIdxItem(std::ifstream& ifs, InvIdxItem* item);
 
       const Config* _pConfig;
       std::vector<InvIdxItem> _invIdx;

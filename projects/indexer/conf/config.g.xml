@@ -107,7 +107,8 @@
 </conf_data>
 
 <index_data>
-  <path>/home/ag/yt_test/index/</path>
+  <!--<path>/home/ag/yt_test/index/</path>-->
+  <path>/home/ag/yt_test/test_index/</path>
   <document_database>doc.db</document_database>
   <document_info>doc.dat</document_info>
   <invert_index>index.dat</invert_index>
