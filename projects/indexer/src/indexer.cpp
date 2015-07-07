@@ -199,8 +199,8 @@ Indexer::~Indexer() { }
 
 void Indexer::cook() {
   try {
-    _parseRawData();
-    _flushToDisk();
+    //_parseRawData();
+    //_flushToDisk();
     _mergeIndexes();
   }
   catch(Index::Exception& e) {
@@ -428,7 +428,8 @@ std::string Indexer::_findFirstEmptyFile()
 
 void writeIdxItem(std::ofstream& ofs, uint32_t token, std::vector<Index::Entry>& entries) {
   writeTo(ofs, token);
-  ofs << entries;
+  writeEntries(ofs, entries);
+  //ofs << entries;
 }
 
 
@@ -475,7 +476,8 @@ class RawIndex {
       //boost::filesystem::remove(path);
     }
     void readTokEntries(std::vector<Index::Entry>& entries) {
-      *_ifs >> entries;
+      //*_ifs >> entries;
+      readEntries(*_ifs, entries);
     }
 
     uint32_t curTok;
@@ -528,7 +530,6 @@ void Indexer::_mergeIndexes() {
     }
     std::sort(entries.begin(), entries.end(), compareEntries);
     writeIdxItem(ofs, min, entries);
-    for (auto& entry: entries) { entry.zoneTf.clear(); }
     entries.clear();
     ++size;
   }

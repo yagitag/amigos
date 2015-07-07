@@ -73,7 +73,7 @@ namespace Index {
   struct Posting
   {
     Posting() : begin(0), end(0) { }
-    Posting(std::istream& is, uint32_t seek);
+    Posting(std::istream& is, uint64_t seek);
     const uint16_t* begin;
     const uint16_t* end;
     private:

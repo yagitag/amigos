@@ -131,7 +131,7 @@ Config::~Config() {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
-Posting::Posting(std::istream& is, uint32_t seek) {
+Posting::Posting(std::istream& is, uint64_t seek) {
   uint16_t size;
   is.seekg(seek, is.beg);
   readFrom(is, &size);
@@ -154,7 +154,7 @@ Posting::Posting(std::istream& is, uint32_t seek) {
 
 void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* res) {
   res->resize(_tZonesCnt);
-  uint32_t po = entry.postingOffset;
+  uint64_t po = entry.postingOffset;
   //uint32_t pso = entry.postingsSizeOffset;
   for (size_t i = 0; i < _tZonesCnt; ++i) {
     if (std::fabs(entry.zoneTf[i] - 0.0) > EPSILON) {
@@ -276,11 +276,11 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   for (auto& item: _invIdx) {
     _readInvIdxItem(_invIdxStream, &item);
   }
-  for (size_t i = 1; i < _invIdx.size(); ++i) {
-    if (_invIdx[i-1].tokId >= _invIdx[i].tokId) {
-      std::cout << i << std::endl;
-    }
-  }
+  //for (size_t i = 1; i < _invIdx.size(); ++i) {
+  //  if (_invIdx[i-1].tokId >= _invIdx[i].tokId) {
+  //    std::cout << i << std::endl;
+  //  }
+  //}
   //_idf.resize(_config.textZones.size());
   //for (auto vec: _idf) {
   //  vec.resize(_invIdx.size());
@@ -311,7 +311,8 @@ void InvertIndex::getEntries(uint32_t tknIdx, std::vector<Entry>* res) {
   //res->resize(_invIdx[tknIdx].entries.size());
   //std::copy(_invIdx[tknIdx].entries.begin(), _invIdx[tknIdx].entries.end(), res->begin());
   _invIdxStream.seekg(_invIdx[tknIdx].offset);
-  _invIdxStream >> *res;
+  readEntries(_invIdxStream, *res);
+  //_invIdxStream >> *res;
 }
 
 
@@ -359,7 +360,7 @@ void InvertIndex::_readInvIdxItem(std::ifstream& ifs, InvIdxItem* item) {
   uint32_t entriesCnt;
   readFrom(ifs, &entriesCnt);
   item->idf = std::log(_invIdx.size() / static_cast<double>(entriesCnt));
-  uint32_t sizeofEntry = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(double) * _pConfig->textZones.size();
+  uint32_t sizeofEntry = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t) + sizeof(double) * _pConfig->textZones.size();
   ifs.seekg(entriesCnt * sizeofEntry, std::ios::cur);
 }
 

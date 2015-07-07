@@ -95,35 +95,29 @@ inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
 }
 
 
-//void writeEntries(std::ofstream& ofs, std::vector<Index::Entry>& entries) {
-//  std::vector<uint8_t> byteBuf;
-//  writeTo(ofs, static_cast<uint32_t>(entries.size()));
-//  for (auto& entry: entries) {
-//    bool2byte(entry.inZone, byteBuf);
-//    writeTo(ofs, entry.docIdOffset);
-//    writeTo(ofs, entry.postingOffset);
-//    ofs << byteBuf;
-//    byteBuf.clear();
-//  }
-//}
-//
-//
-//
-//void readEntries(std::ifstream& ifs, std::vector<Index::Entry>& entries, size_t tZonesCnt) {
-//  uint32_t curSize, size;
-//  curSize = entries.size();
-//  readFrom(ifs, &size);
-//  entries.resize(curSize + size);
-//  std::vector<uint8_t> byteBuf;
-//  for (size_t i = curSize; i < entries.size(); ++i) {
-//    entries[i] = Index::Entry(0,0,std::vector<bool>());
-//    readFrom(ifs, &entries[i].docIdOffset);
-//    readFrom(ifs, &entries[i].postingOffset);
-//    ifs >> byteBuf;
-//    byte2bool(byteBuf, entries[i].inZone, tZonesCnt);
-//    byteBuf.clear();
-//  }
-//}
+
+inline void writeEntries(std::ofstream& ofs, std::vector<Index::Entry>& entries) {
+  writeTo(ofs, static_cast<uint32_t>(entries.size()));
+  for (auto& entry: entries) {
+    writeTo(ofs, entry.docIdOffset);
+    writeTo(ofs, entry.postingOffset);
+    ofs << entry.zoneTf;
+  }
+}
+
+
+
+inline void readEntries(std::ifstream& ifs, std::vector<Index::Entry>& entries) {
+  uint32_t curSize, size;
+  curSize = entries.size();
+  readFrom(ifs, &size);
+  entries.resize(curSize + size);
+  for (size_t i = curSize; i < entries.size(); ++i) {
+    readFrom(ifs, &entries[i].docIdOffset);
+    readFrom(ifs, &entries[i].postingOffset);
+    ifs >> entries[i].zoneTf;
+  }
+}
 
 
 
