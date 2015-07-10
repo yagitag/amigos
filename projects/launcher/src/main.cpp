@@ -5,21 +5,29 @@
 
 using namespace std;
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-    if( argc != 4 )
+    if( argc != 3 )
     {
-        std::cerr << "USAGE: " << string(argv[0]) << " path_to_config path_to_stopwords query" << std::endl;
+        std::cerr << "USAGE: " << string(argv[0]) << " path_to_config path_to_stopwords" << std::endl;
         return 1;
     }
     Launcher launcher;
     launcher.configure(string(argv[1]), string(argv[2]));
 
-    vector<Document> docs;
-    string query = string(argv[3]);
-    launcher.launch_searcher( query, docs );
+    cout << "CONFIGURED!" << std::endl;
+    while(1)
+    {
+        cout << "Query: ";
+        string query;
+        getline(cin, query);
 
-    std::cout << docs.size() << std::endl;   
+        vector<Document> docs;
+        //string query = string(argv[3]);
+        launcher.launch_searcher( query, docs );
+
+        std::cout << "DOCS NUM FROM LAUNCHER: " << docs.size() << std::endl;
+    }
 
     return 0;
 }
