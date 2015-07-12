@@ -43,7 +43,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 		for (size_t subNum = 0; subNum < snippets.size(); subNum++)
 		{
 			xml += "\t\t <snippet text=\"" + snippets[subNum].subtitle.first + "\" ";
-			xml += "time=\"" + std::to_string((long double)snippets[subNum].subtitle.second) + "\" ";
+			xml += "time=\"" + std::to_string((long long)snippets[subNum].subtitle.second) + "\" ";
 			xml += ">\n";
 
 			for (size_t pos = 0; pos < snippets[subNum].selections.size(); pos++)
