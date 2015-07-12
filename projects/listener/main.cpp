@@ -251,6 +251,7 @@ int main(int argc, char* argv[])
 		{
 			string text = Search(bytes_recv, buff);
 
+      std::cout << text << std::endl;
 			send(client_socket, text.c_str(), text.size() * sizeof(char), 0);
 		}
 
