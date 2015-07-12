@@ -57,7 +57,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 		xml += "\t </result>";
 	}
 
-	xml += "</results>\n";
+	xml += "</results>";
 	return xml;
 }
 
