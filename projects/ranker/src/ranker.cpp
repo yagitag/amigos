@@ -122,8 +122,10 @@ bool comp_subs( pair <size_t, pair< float, float > > x, pair <size_t, pair< floa
 
 void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vector<Entry> > &entries_by_doc, vector< pair <uint32_t, pair< float, float > > > &docid_by_rank)
 {
+  std::cout << "START RANKING" << std::endl;
     for( size_t i = 0; i < entries_by_doc.size(); ++i )
     {
+        std::cerr << i << std::endl;
         const vector<Entry> &entries = entries_by_doc[i];
         if( entries.empty() ) continue; // can not be ?
         pair< float, float > doc_rank = get_doc_rank( index, entries );
@@ -132,9 +134,11 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
 
     }
     sort(docid_by_rank.begin(), docid_by_rank.end(), comp_title);
+    std::cout << "SORT BY TITLE" << std::endl;
     auto it1 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 5000, title_only_more);
     auto it2 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 500, title_only_more);
     sort(docid_by_rank.begin(), it1, comp_subs);
     sort(it1, it2, comp_subs);
     sort(it2, docid_by_rank.end(), comp_subs);
+    std::cout << "FINISHIG RANKING" << std::endl;
 }

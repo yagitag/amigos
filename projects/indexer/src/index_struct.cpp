@@ -87,6 +87,11 @@ Config::Config(const std::string& configPath) {
       docStoreFile = getNecessaryTag(tag, "document_info")->GetText();
       documentDb = getNecessaryTag(tag, "document_database")->GetText();
       postingsFile = getNecessaryTag(tag, "postings")->GetText();
+      //Optional
+      auto invertIndexIPosFileTag = tag->FirstChildElement("invert_index_ipos");
+      if (invertIndexIPosFileTag) {
+        invertIndexIPosFile = invertIndexIPosFileTag->GetText();
+      }
     }
     else {
       std::vector<Zone*>* pZones;
@@ -131,10 +136,10 @@ Config::~Config() {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
-Posting::Posting(std::istream& is, uint64_t seek) {
-  uint16_t size;
+Posting::Posting(std::istream& is, uint64_t seek, uint16_t size) {
+  //uint16_t size;
   is.seekg(seek, is.beg);
-  readFrom(is, &size);
+  //readFrom(is, &size);
   _data = std::shared_ptr<uint16_t>(new uint16_t[size], std::default_delete<uint16_t[]>());
   is.read(reinterpret_cast<char*>(_data.get()), size*sizeof(uint16_t));
   begin = _data.get();
@@ -154,12 +159,12 @@ Posting::Posting(std::istream& is, uint64_t seek) {
 
 void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* res) {
   res->resize(_tZonesCnt);
-  uint64_t po = entry.postingOffset;
-  //uint32_t pso = entry.postingsSizeOffset;
+  uint64_t po = entry.postingInfo.postingOffset;
+  auto psIt = entry.postingInfo.postingSizes.begin();
   for (size_t i = 0; i < _tZonesCnt; ++i) {
-    if (std::fabs(entry.zoneTf[i] - 0.0) > EPSILON) {
-      Posting np(_ifs, po * sizeof(uint16_t));
-      po += (np.end - np.begin + 1); //TODO сделать нормально
+    if (i2mask[i] & entry.postingInfo.inZone) {
+      Posting np(_ifs, po * sizeof(uint16_t), *psIt++);
+      po += (np.end - np.begin); //TODO сделать нормально
       (*res)[i] = np;
     }
   }
@@ -273,8 +278,15 @@ void InvertIndex::configure(const std::string& pathToConfig) {
   }
   uint32_t size = readFromEnd(_invIdxStream);
   _invIdx.resize(size);
-  for (auto& item: _invIdx) {
-    _readInvIdxItem(_invIdxStream, &item);
+  if (_pConfig->invertIndexIPosFile.empty()) {
+    for (auto& item: _invIdx) {
+      _readInvIdxItem(_invIdxStream, &item);
+    }
+  } else {
+    std::ifstream tmpOptStream(_pConfig->indexDataPath + '/' + _pConfig->invertIndexIPosFile, std::ios::in | std::ios::binary);
+    for (auto& item: _invIdx) {
+      _readInvIdxItemOpt(_invIdxStream, tmpOptStream, &item);
+    }
   }
   //for (size_t i = 1; i < _invIdx.size(); ++i) {
   //  if (_invIdx[i-1].tokId >= _invIdx[i].tokId) {
@@ -330,8 +342,15 @@ uint32_t InvertIndex::getNZone(const Entry& entry, uint8_t nZoneId) {
 
 
 
-double InvertIndex::getTF(const Entry& entry, uint8_t tZoneId) {
-  return entry.zoneTf[tZoneId];
+void InvertIndex::getZonesTf(const Entry& entry, std::vector<double>& tfVec) {
+  size_t curZone = 0;
+  for (size_t zi = 0; zi < _pConfig->textZones.size(); ++zi) {
+    if (i2mask[zi] & entry.postingInfo.inZone) {
+      tfVec.push_back(entry.postingInfo.postingSizes[curZone] / _pDocStore->getTZoneWCnt(entry.docIdOffset, zi));
+    } else {
+      tfVec.push_back(0.);
+    }
+  }
 }
 
 
@@ -354,14 +373,30 @@ void InvertIndex::getRawDoc(uint32_t docId, RawDoc* res) {
 
 
 
+void InvertIndex::_readInvIdxItemOpt(std::ifstream& ifs, std::ifstream& ifsForOpt, InvIdxItem* item) {
+  uint64_t offset;
+  readFrom(ifsForOpt, &offset);
+  ifs.seekg(offset, std::ios::beg);
+  readFrom(ifs, &(item->tokId));
+  item->offset = ifs.tellg();
+  uint32_t entriesCnt;
+  readFrom(ifs, &entriesCnt);
+  item->idf = std::log(_invIdx.size() / static_cast<double>(entriesCnt));
+}
+
+
+
 void InvertIndex::_readInvIdxItem(std::ifstream& ifs, InvIdxItem* item) {
   readFrom(ifs, &(item->tokId));
   item->offset = ifs.tellg();
   uint32_t entriesCnt;
   readFrom(ifs, &entriesCnt);
   item->idf = std::log(_invIdx.size() / static_cast<double>(entriesCnt));
-  uint32_t sizeofEntry = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t) + sizeof(double) * _pConfig->textZones.size();
-  ifs.seekg(entriesCnt * sizeofEntry, std::ios::cur);
+  uint8_t size;
+  for (size_t i = 0; i < entriesCnt; ++i) {
+    readFrom(ifs, &size);
+    ifs.seekg(sizeof(uint16_t) * size + sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t), std::ios::cur);
+  }
 }
 
 
@@ -465,6 +500,16 @@ void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vect
 
 
 
+//bool Index::compareEntriesByTf(const Index::Entry& e1, const Index::Entry& e2) {
+//  for (size_t i = 0; i < e1.zoneTf.size(); ++i) {
+//    if (e1.zoneTf[i] > e2.zoneTf[i]) return true;
+//    else if (e1.zoneTf[i] < e2.zoneTf[i]) return false;
+//  }
+//  return false;
+//}
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -492,7 +537,7 @@ void DocDatabase::open(const std::string& path) {
 
 
 void readStr(std::istream& is, std::string& str) {
-  uint32_t size;
+  uint16_t size;
   readFrom(is, &size);
   str.resize(size);
   is.read(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
@@ -501,7 +546,7 @@ void readStr(std::istream& is, std::string& str) {
 
 
 void writeStr(std::ostream& os, std::string& str) {
-  writeTo(os, str.size());
+  writeTo(os, static_cast<uint16_t>(str.size()));
   os.write(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
 }
 

@@ -41,11 +41,6 @@ class DynPostingStore : public Index::PostingStorage
     DynPostingStore(const Index::Config& config);
     ~DynPostingStore();
     void addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint64_t* postingOffset);
-    //size_t size();
-    //void mergeWith(const std::string& path);
-    //void copyPosting(std::ofstream& ofs);
-    //friend std::ostream& operator<<(std::ostream& ofs, DynPostingStore& postingStore);
-    //friend class RawIndex;
   protected:
     std::ofstream _ofs;
     std::string _path;

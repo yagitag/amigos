@@ -78,20 +78,40 @@ inline std::ostream& operator<<(std::ostream& ofs, std::vector<T>& vec) {
 
 
 
-inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
-  ofs << e.zoneTf;
-  writeTo(ofs, e.docIdOffset);
-  writeTo(ofs, e.postingOffset);
-  return ofs;
+//inline std::ostream& operator<<(std::ostream& ofs, Index::Entry& e) {
+//  ofs << e.zoneTf;
+//  writeTo(ofs, e.docIdOffset);
+//  writeTo(ofs, e.postingOffset);
+//  return ofs;
+//}
+//
+//
+//
+//inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
+//  ifs >> e.zoneTf;
+//  readFrom(ifs, &e.docIdOffset);
+//  readFrom(ifs, &e.postingOffset);
+//  return ifs;
+//}
+
+
+
+inline void writePostingInfo(std::ofstream& ofs, Index::PostingInfo& postingInfo) {
+  writeTo(ofs, static_cast<uint8_t>(postingInfo.postingSizes.size()));
+  ofs.write(reinterpret_cast<char*>(&postingInfo.postingSizes[0]), postingInfo.postingSizes.size()*sizeof(uint16_t));
+  writeTo(ofs, postingInfo.inZone);
+  writeTo(ofs, postingInfo.postingOffset);
 }
 
 
 
-inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
-  ifs >> e.zoneTf;
-  readFrom(ifs, &e.docIdOffset);
-  readFrom(ifs, &e.postingOffset);
-  return ifs;
+inline void readPostingInfo(std::ifstream& ifs, Index::PostingInfo& postingInfo) {
+  uint8_t size;
+  readFrom(ifs, &size);
+  postingInfo.postingSizes.resize(size);
+  ifs.read(reinterpret_cast<char*>(&postingInfo.postingSizes[0]), size*sizeof(uint16_t));
+  readFrom(ifs, &postingInfo.inZone);
+  readFrom(ifs, &postingInfo.postingOffset);
 }
 
 
@@ -99,9 +119,8 @@ inline std::istream& operator>>(std::istream& ifs, Index::Entry& e) {
 inline void writeEntries(std::ofstream& ofs, std::vector<Index::Entry>& entries) {
   writeTo(ofs, static_cast<uint32_t>(entries.size()));
   for (auto& entry: entries) {
+    writePostingInfo(ofs, entry.postingInfo);
     writeTo(ofs, entry.docIdOffset);
-    writeTo(ofs, entry.postingOffset);
-    ofs << entry.zoneTf;
   }
 }
 
@@ -113,9 +132,8 @@ inline void readEntries(std::ifstream& ifs, std::vector<Index::Entry>& entries) 
   readFrom(ifs, &size);
   entries.resize(curSize + size);
   for (size_t i = curSize; i < entries.size(); ++i) {
+    readPostingInfo(ifs, entries[i].postingInfo);
     readFrom(ifs, &entries[i].docIdOffset);
-    readFrom(ifs, &entries[i].postingOffset);
-    ifs >> entries[i].zoneTf;
   }
 }
 

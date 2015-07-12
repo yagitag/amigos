@@ -6,14 +6,6 @@
 #include <string>
 #include "loc.hpp"
 
-bool compareEntriesByTf(const Index::Entry& e1, const Index::Entry& e2) {
-  for (size_t i = 0; i < e1.zoneTf.size(); ++i) {
-    if (e1.zoneTf[i] > e2.zoneTf[i]) return true;
-    else if (e1.zoneTf[i] < e2.zoneTf[i]) return false;
-  }
-  return false;
-}
-
 int main(int argc, char *argv[])
 {
   const char *configPath;
@@ -41,7 +33,7 @@ int main(int argc, char *argv[])
       if (tokId != Index::InvertIndex::unexistingToken) {
         index.getEntries(tokId, &entries);
         std::cout << "ENTRIES COUNT WITHOUT CUT: " << entries.size() << std::endl;
-        std::sort(entries.begin(), entries.end(), compareEntriesByTf);
+        //std::sort(entries.begin(), entries.end(), Index::compareEntriesByTf);
         //entries.resize(2);
         uint32_t docId;
         for (auto& entry: entries) {
@@ -51,11 +43,11 @@ int main(int argc, char *argv[])
           index.getRawDoc(docId, &doc);
           std::cout << "VIDEO_ID:\t" << doc.videoId << std::endl;
           std::cout << "TITLE:\t" << doc.title << std::endl;
-          std::vector< std::pair<std::string,double> > phrases;
+          //std::vector< std::pair<std::string,double> > phrases;
           //doc->getPhrases(phrases);
-          for (const auto& phrase: phrases) {
-            std::cout << phrase.second << ": " << phrase.first << std::endl;
-          }
+          //for (const auto& phrase: phrases) {
+          //  std::cout << phrase.second << ": " << phrase.first << std::endl;
+          //}
           postings.clear();
           index.getFullPosting(entry, &postings);
           for (size_t i = 0; i < postings.size(); ++i) {

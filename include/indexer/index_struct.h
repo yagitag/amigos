@@ -42,6 +42,7 @@ namespace Index {
     std::string bigramerPath;
     std::string indexDataPath;
     std::string invertIndexFile;
+    std::string invertIndexIPosFile; // for optimize (is optional)
     //
     std::vector<Zone*> numZones;
     std::vector<Zone*> textZones;
@@ -49,14 +50,19 @@ namespace Index {
   };
 
 
+  struct PostingInfo {
+    uint8_t inZone;
+    uint64_t postingOffset;
+    std::vector<uint16_t> postingSizes;
+  };
+
+
   struct Entry
   {
     //Entry(uint32_t dOfs = 0, uint32_t pOfs = 0/*, uint8_t iz = 0*/) :
       //docIdOffset(dOfs), postingOffset(pOfs), inZone(iz) { }
-    //uint8_t inZone;
     uint32_t docIdOffset;
-    uint64_t postingOffset;
-    std::vector<double> zoneTf;
+    PostingInfo postingInfo;
   };
 
 
@@ -73,7 +79,7 @@ namespace Index {
   struct Posting
   {
     Posting() : begin(0), end(0) { }
-    Posting(std::istream& is, uint64_t seek);
+    Posting(std::istream& is, uint64_t seek, uint16_t size);
     const uint16_t* begin;
     const uint16_t* end;
     private:
@@ -170,7 +176,8 @@ namespace Index {
       uint32_t getNZone(const Entry& entry, uint8_t nZoneId);
       void getEntries(uint32_t tknIdx, std::vector<Entry>* res);
       double getIDF(uint32_t tknIdx);
-      double getTF(const Entry& entry, uint8_t tZoneId);
+      //double getTF(const Entry& entry, uint8_t tZoneId);
+      void getZonesTf(const Entry& entry, std::vector<double>& tfVec);
       Posting getPosting(const Entry& entry, uint8_t tZoneId);
       void getFullPosting(const Entry& entry, std::vector<Posting>* res);
       void getRawDoc(uint32_t docId, RawDoc* res);
@@ -178,6 +185,7 @@ namespace Index {
     private:
       //void _load();
       void _readInvIdxItem(std::ifstream& ifs, InvIdxItem* item);
+      void _readInvIdxItemOpt(std::ifstream& ifs, std::ifstream& ifsForOpt, InvIdxItem* item);
 
       const Config* _pConfig;
       std::vector<InvIdxItem> _invIdx;
@@ -190,6 +198,7 @@ namespace Index {
 
 
   void intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >* output);
+  //bool compareEntriesByTf(const Index::Entry& e1, const Index::Entry& e2);
 
 
   struct Exception : public std::exception

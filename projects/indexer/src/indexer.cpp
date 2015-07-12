@@ -148,11 +148,8 @@ DynPostingStore::~DynPostingStore() {
 
 void DynPostingStore::addTokenPosting(std::vector< std::vector<uint16_t> >& zonesPosting, uint64_t* postingOffset) {
   *postingOffset = _commonSize;
-  uint16_t size;
   for (auto& vec: zonesPosting) {
-    _commonSize += (vec.size() + 1);
-    size = vec.size();
-    writeTo(_ofs, size);
+    _commonSize += vec.size();
     _ofs.write(reinterpret_cast<char*>(&vec[0]), vec.size()*sizeof(uint16_t));
   }
 }
@@ -199,8 +196,8 @@ Indexer::~Indexer() { }
 
 void Indexer::cook() {
   try {
-    //_parseRawData();
-    //_flushToDisk();
+    _parseRawData();
+    _flushToDisk();
     _mergeIndexes();
   }
   catch(Index::Exception& e) {
@@ -318,8 +315,8 @@ void Indexer::_parseRawData() {
 
 
 
-void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, std::vector<double>& zoneTf) {
-  uint8_t zi = 0, inZone = 0;
+void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16_t>& zwCnt, std::vector< std::vector<uint16_t> >& splitPosting, Index::Entry& entry) {
+  uint8_t zi = 0;
   uint16_t offset = 0;
   bool isNewZone = true;
   for (const auto& val : posting) {
@@ -329,18 +326,13 @@ void splitByZones(const std::vector<uint16_t>& posting, const std::vector<uint16
     }
     if (isNewZone) {
       splitPosting.push_back(std::vector<uint16_t>());
-      inZone |= Index::i2mask[zi];
+      entry.postingInfo.inZone |= Index::i2mask[zi];
     }
     splitPosting.back().push_back(val - offset);
     isNewZone = false;
   }
-  uint8_t i = 0;
-  for (size_t zi = 0; zi < zwCnt.size(); ++zi) {
-    if (Index::i2mask[zi] & inZone) {
-      zoneTf.push_back(static_cast<double>(splitPosting[i++].size()) / zwCnt[zi]);
-    } else {
-      zoneTf.push_back(0.);
-    }
+  for (size_t zi = 0; zi < splitPosting.size(); ++zi) {
+    entry.postingInfo.postingSizes.push_back(splitPosting[zi].size());
   }
 }
 
@@ -359,6 +351,15 @@ void Indexer::_addToStatDict(const std::string& word) {
 
 
 
+bool hasBadSymbols(const std::string& str) {
+  for (const auto& ch: str) {
+    if (!std::isalnum(ch) && ch != '_') return true;
+  }
+  return false;
+}
+
+
+
 void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<uint16_t>& wordsCnt, std::map<std::string,std::string>& forSave) {
   uint16_t pos = 0;
   std::vector<std::string> terms;
@@ -370,8 +371,12 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
     Common::terminate2vec(zonesVec[zi], terms);
     _bigramer.bigram2vec(terms, bterms);
     for (auto& word : bterms) {
-      _addToStatDict(word);
       ++wordsCnt[zi];
+      if (hasBadSymbols(word)) {
+        ++pos;
+        continue;
+      }
+      _addToStatDict(word);
       auto tokId = MurmurHash2(word.data(), word.size());
       tmpDict[tokId].push_back(pos++);
     }
@@ -385,8 +390,8 @@ void Indexer::_extractTextZones(const tinyxml2::XMLElement* tiElem, std::vector<
     entries.push_back(Index::Entry());
     Index::Entry& entry = entries.back();
     // New Entry initializion
-    splitByZones(pair.second, wordsCnt, fzpBuf, entry.zoneTf);
-    _postingStore.addTokenPosting(fzpBuf, &(entry.postingOffset));
+    splitByZones(pair.second, wordsCnt, fzpBuf, entry);
+    _postingStore.addTokenPosting(fzpBuf, &entry.postingInfo.postingOffset);
     entry.docIdOffset = _docStore.size();
     //
     //_invIdx[pair.first].push_back(entry);
@@ -442,7 +447,7 @@ void Indexer::_flushToDisk() {
   for (auto& pair: _invIdx) {
     writeIdxItem(ofs, pair.first, pair.second);
   }
-  writeTo(ofs, _invIdx.size());
+  writeTo(ofs, static_cast<uint32_t>(_invIdx.size()));
   _invIdx.clear();
   ofs.close();
   //
@@ -511,7 +516,11 @@ void Indexer::_mergeIndexes() {
   //
   std::vector<Index::Entry> entries;
   uint32_t min;
-  size_t size = 0;
+  uint32_t size = 0;
+  std::ofstream ofsForOpt;
+  if (!_config.invertIndexIPosFile.empty()) {
+    ofsForOpt.open(_config.indexDataPath + _config.invertIndexIPosFile, std::ios::out | std::ios::binary);
+  }
   while (!indexes.empty()) {
     min = std::numeric_limits<uint32_t>::max();
     for (auto& index: indexes) {
@@ -529,6 +538,9 @@ void Indexer::_mergeIndexes() {
       ++itIdx;
     }
     std::sort(entries.begin(), entries.end(), compareEntries);
+    if (!_config.invertIndexIPosFile.empty()) {
+      writeTo(ofsForOpt, static_cast<uint64_t>(ofs.tellp()));
+    }
     writeIdxItem(ofs, min, entries);
     entries.clear();
     ++size;
@@ -550,14 +562,14 @@ int main(int argc, char *argv[])
     std::cout << "Usage: '" << argv[0] << "' path_to_config" << std::endl;
     return 1;
   }
-  try {
+//  try {
     Common::init_locale("en_US.UTF-8");
     Index::Config config(configPath);
     Indexer indexer(config);
     indexer.cook();
-  }
-  catch (std::exception& e) {
-    std::cerr << "Catch the exception: " << e.what() << std::endl;
-  }
+//  }
+//  catch (std::exception& e) {
+//    std::cerr << "Catch the exception: " << e.what() << std::endl;
+//  }
   return 0;
 }
