@@ -28,7 +28,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 	std::string count = std::to_string((long long)docs.size());
 	xml += "<results totalResultsCount = \"" + count + "\">\n";
 
-	for (int i = startDoc; i < endDoc; i++)
+	for (int i = startDoc; i < endDoc && i < docs.size(); i++)
 	{
 		xml += "\t <result link=\"https://www.youtube.com/watch?v=" + docs[i].videoId + "\" ";
 		xml += "title=\"" + docs[i].title + "\" ";
