@@ -23,9 +23,9 @@ string wstr2str( const wstring &ws, size_t a_size );
 
 string toLower( const string &str );
 
-string normalize_word( const string &word );
+string normalize_word( const string &word, bool stemm = true );
 
-void terminate2vec( const string &str, vector < string > &vec );
+void terminate2vec( const string &str, vector < string > &vec, bool stemm = true );
 
 void terminate2set( const string &str, set < string > &res_set );
 
