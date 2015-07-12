@@ -24,7 +24,7 @@ Launcher launcher;
 string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endDoc, bool findOnlyInSubs)
 {
 	string xml = "";
-	xml += "<?xml version=\"1.0\" encoding=\"utf - 16\"?>\n";
+	xml += "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n";
 	std::string count = std::to_string((long long)docs.size());
 	xml += "<results totalResultsCount = \"" + count + "\">\n";
 
@@ -48,8 +48,8 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 
 			for (size_t pos = 0; pos < snippets[subNum].selections.size(); pos++)
 			{
-				xml += "\t\t\t <selection start=\"" + std::to_string((long double)snippets[subNum].selections[pos].first) + "\" ";
-				xml += "lenght=\"" + std::to_string((long double)snippets[subNum].selections[pos].second) + "\"/>\n";
+				xml += "\t\t\t <selection start=\"" + std::to_string((long long)snippets[subNum].selections[pos].first) + "\" ";
+				xml += "lenght=\"" + std::to_string((long long)snippets[subNum].selections[pos].second) + "\"/>\n";
 			}
 			xml += "\t\t</snippet>\n";
 		}
