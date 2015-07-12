@@ -197,8 +197,13 @@ int main(int argc, char* argv[])
 
 	char buff[1024]; 
 
-	const std::string path_to_config = "";
-	const std::string path_to_stopwords = "";
+  if (argc != 3) {
+    std::cerr << "Usage: lister <path_to_config> <path_to_stopwords>" << std::endl;
+    return 1;
+  }
+	const std::string path_to_config = argv[1];
+	const std::string path_to_stopwords = argv[2];
+
 	//Launcher launcher;
 
 	launcher.configure(path_to_config, path_to_stopwords);
