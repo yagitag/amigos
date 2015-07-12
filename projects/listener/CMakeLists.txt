@@ -1,0 +1,15 @@
+include_directories(${Search_SOURCE_DIR}/${INC_DIR}/indexer/)
+include_directories(${Search_SOURCE_DIR}/${INC_DIR}/searcher/)
+include_directories(${Search_SOURCE_DIR}/${INC_DIR}/launcher/)
+include_directories(${Search_SOURCE_DIR}/${INC_DIR}/common/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/tinyxml2/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/murmur_hash/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/include/)
+include_directories(${Search_SOURCE_DIR}/${CONTRIB_DIR}/leveldb/include/leveldb/)
+
+add_executable(listener main.cpp)
+
+target_link_libraries(listener launcher ranker searcher leveldb index murmur_hash tinyxml2 common)
+
