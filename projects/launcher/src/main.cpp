@@ -26,6 +26,23 @@ int main(int argc, char *argv[])
         //string query = string(argv[3]);
         launcher.launch_searcher( query, docs );
 
+        for(size_t i = 0; i < 10; ++i)
+        {
+            Document &doc = docs[i];
+            std::vector< Snippet > snippets;
+            launcher.get_snippets(query, doc.docId, snippets, 3);
+            cout << "SNIPPETS:" << endl;
+            for( Snippet &spt : snippets )                                         
+            {                                                                      
+                cout << "SUBTITLE: " << spt.subtitle.first << std::endl;           
+                for( auto sel : spt.selections )                                   
+                {                                                                  
+                    cout << "SEL: " << sel.first << " SIZE: " << sel.second << endl;
+                }                                                                  
+            }                                                                      
+
+        }
+
         std::cout << "DOCS NUM FROM LAUNCHER: " << docs.size() << std::endl;
     }
 

@@ -28,3 +28,10 @@ void Launcher::launch_searcher( std::string &query, std::vector<Document> &docs 
     searcher.search( tokens, docs );
 }
 
+void Launcher::get_snippets( std::string &query, uint32_t docId, std::vector< Snippet > &snippets, uint32_t snippets_num )
+{
+    vector< string > norm_words;
+    terminate2vec( query, norm_words, false );
+    
+    searcher.get_snippets( docId, norm_words, snippets, snippets_num);
+}

@@ -45,19 +45,20 @@ string toLower( const string &str )
     return low_str;
 }
 
-string normalize_word( const string &word )
+string normalize_word( const string &word, bool stemm )
 {
     string norm_word = toLower(word);
-    Porter2Stemmer::stem(norm_word);
+    if( stemm )
+        Porter2Stemmer::stem(norm_word);
     return norm_word;
 }
 
-void terminate2vec( const string &str, vector < string > &vec )
+void terminate2vec( const string &str, vector < string > &vec, bool stemm )
 {
     Tokenizer tkns(str);
     tkns.get_vec(vec);
     for (string &term: vec)
-        term = normalize_word(term);
+        term = normalize_word(term, stemm);
 }
 
 void terminate2set( const string &str, set < string > &res_set )

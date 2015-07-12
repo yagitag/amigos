@@ -1,5 +1,6 @@
 #include "../../../include/searcher/searcher.hpp"
 #include "../../../include/indexer/index_struct.h"
+#include "../../../include/common/normalizer.hpp"
 #include <vector>
 #include <algorithm>
 
@@ -80,76 +81,81 @@ std::string get_query_part(const std::vector< std::string > &tokens, size_t star
     return query_part;
 } 
 
+
 typedef std::pair<std::string, double> Phrase_t;
 typedef std::pair< std::vector< Selection_t >, std::vector< size_t > /* selections_word_count_statistic */ > Selections_with_statistic_t;
+typedef std::pair<Selection_t, size_t /* selection_size */ > Select_with_size_t;
+
+bool max_words(const Select_with_size_t &s1, const Select_with_size_t &s2)
+{
+    return s1.second < s2.second;
+}
 
 void get_selections(const std::vector< std::string > &tokens, std::pair< Selections_with_statistic_t, Phrase_t > *selections_with_statistic)
 {
-    std::list< std::pair<Selection_t, size_t /* selection_size */ > >selects_with_sizes;
+    //std::list< std::pair<Selection_t, size_t /* selection_size */ > >selects_with_sizes;
+    std::map<uint32_t /* start_pos */, std::vector<Select_with_size_t> > selects_map;
+    std::string subtitle_m   = " " + selections_with_statistic->second.first + " ";
     for(size_t window_size = 1; window_size <= tokens.size(); ++window_size)
     {
         for(size_t start = 0, end = window_size; end <= tokens.size(); ++start, ++end)
         {
             std::string query_part   = get_query_part(tokens, start, end);
             std::string query_part_m = " " + query_part + " ";
-            std::string subtitle_m   = " " + selections_with_statistic->second.first + " ";
-            if(window_size == 1)
+            size_t found_pos = -1;
+            while((found_pos = subtitle_m.find(query_part_m, found_pos+1)) != std::string::npos)
             {
-                size_t found_pos = -1;
-                while((found_pos = subtitle_m.find(query_part_m, found_pos+1)) != std::string::npos)
-                    selects_with_sizes.push_back(std::make_pair(Selection_t(found_pos, query_part_m.size()-1), window_size));
-            }
-            else
-            {
-                for( std::list< std::pair<Selection_t, size_t> >::iterator it = selects_with_sizes.begin(); it != selects_with_sizes.end(); ++it )
-                {
-                    size_t start = it->first.first;
-//                    size_t end  = start + it->first.second;
-                    size_t new_end  = start + query_part_m.size();
-
-                    if(new_end >= subtitle_m.size()) break; //CHECK IT !!!
-
-                    if(std::string(&subtitle_m[start], &subtitle_m[new_end]) == query_part_m)
-                    {
-                        it->first.second = query_part_m.size()-1;
-                        it->second = window_size;
-                        // Проверяем, не захавали ли соседнее вхождение
-                        if(++it != selects_with_sizes.end())
-                        {
-                            if(it->first.first < new_end) // CHECK IT !!!
-                                selects_with_sizes.erase(it);
-                        }
-                        break;
-                    }
-                }
+                Select_with_size_t select_with_size = std::make_pair(Selection_t(found_pos, query_part_m.size()-1), window_size);
+                selects_map[found_pos].push_back(select_with_size);
             }
         }
     }
     selections_with_statistic->first.second.resize(tokens.size());
-    for( auto &select_and_sizes : selects_with_sizes )
+    for(auto it = selects_map.begin(); it != selects_map.end(); ++it)
     {
-        selections_with_statistic->first.first.push_back(select_and_sizes.first);
-        ++(selections_with_statistic->first.second[select_and_sizes.second]);
+        std::vector<Select_with_size_t> &selects = it->second;
+        auto it_s_max = std::max_element(selects.begin(), selects.end(), max_words);
+        selections_with_statistic->first.first.push_back(it_s_max->first);
+        ++(selections_with_statistic->first.second[it_s_max->second-1]);
+
+        size_t end = it_s_max->first.first + it_s_max->first.second;
+        ++it;
+        for(; it != selects_map.end(); ++it)
+        {
+            if(it->first >= end)
+                break;
+        }
+        --it;
     }
 }
 
-
 bool snippet_ranker(std::pair< Selections_with_statistic_t, Phrase_t > s1, std::pair< Selections_with_statistic_t, Phrase_t > s2)
 {
-    for(size_t i = s1.first.second.size()-1; i >= 0; --i)
+    for(ptrdiff_t i = s1.first.second.size()-1; i >= 0; --i)
     {
         if(s1.first.second[i] > s2.first.second[i]) return true;
         if(s1.first.second[i] < s2.first.second[i]) return false;
     }
+    
     return false;
 }
 
-void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > snippets, uint32_t snippets_num )
+void toLower( std::vector<Phrase_t> &phrases )
+{
+    for(Phrase_t &phr : phrases)
+    {
+        phr.first = Common::toLower(phr.first);
+    }
+}
+
+void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > &snippets, uint32_t snippets_num )
 {
     RawDoc raw_doc;
     index.getRawDoc(docId, &raw_doc);
     std::vector<Phrase_t> phrases;
     raw_doc.getPhrases( phrases );
+
+    toLower( phrases );
 
     std::vector< std::pair< Selections_with_statistic_t, Phrase_t > > all_selections_with_stat(phrases.size());
     for(size_t i = 0; i < phrases.size(); ++i)
@@ -163,5 +169,6 @@ void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &t
         Snippet snippet;
         snippet.subtitle = all_selections_with_stat[i].second;
         snippet.selections.assign(all_selections_with_stat[i].first.first.begin(), all_selections_with_stat[i].first.first.end());
+        snippets.push_back(snippet);
     }
 }
