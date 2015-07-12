@@ -24,18 +24,17 @@ Launcher launcher;
 string ReplaceSubstring(string str, string replaceStr, string newStr)
 {
 	size_t index = 0;
-	while (true) 
+	while (true)
 	{
-     
-     index = str.find(replaceStr, index);
-     if (index == string::npos) 
-		 break;
+		index = str.find(replaceStr, index);
+		if (index == string::npos)
+			break;
 
-     str.replace(index, replaceStr.size(), newStr);
+		str.replace(index, replaceStr.size(), newStr);
 
-     index += replaceStr.size();
+		index += replaceStr.size();
 	}
-	return replaceStr;
+	return str;
 }
 
 string Format(string str)
@@ -44,8 +43,8 @@ string Format(string str)
 	string symbolCode [] = {"&amp;", "&lt;", "&gt;", "&quot;", "&apos;"};
 
 	for (size_t i = 0; i < 5; i++)
-		str = ReplaceSubstring(str, symbols[i], symbolCode[i]); 
-	return str;
+	str = ReplaceSubstring(str, symbols[i], symbolCode[i]);
+		return str;
 }
 
 string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endDoc, bool findOnlyInSubs)
@@ -58,7 +57,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 	for (int i = startDoc; i < endDoc && i < docs.size(); i++)
 	{
 		xml += "\t <result link=\"https://www.youtube.com/watch?v=" + docs[i].videoId + "\" ";
-		xml += "title=\"" + docs[i].title + "\" ";
+		xml += "title=\"" + Format(docs[i].title) + "\" ";
 		xml += "description=\"\" ";
 		//xml += "selectionStart=\"0\" selectionLength=\"0\" ";
 		xml += "> \n";
