@@ -21,6 +21,33 @@ using namespace std;
 
 Launcher launcher;
 
+string ReplaceSubstring(string str, string replaceStr, string newStr)
+{
+	size_t index = 0;
+	while (true) 
+	{
+     
+     index = str.find(replaceStr, index);
+     if (index == string::npos) 
+		 break;
+
+     str.replace(index, replaceStr.size(), newStr);
+
+     index += replaceStr.size();
+	}
+	return replaceStr;
+}
+
+string Format(string str)
+{
+	string symbols [] = {"&", "<", ">", "\"", "\'"};
+	string symbolCode [] = {"&amp;", "&lt;", "&gt;", "&quot;", "&apos;"};
+
+	for (size_t i = 0; i < 5; i++)
+		str = ReplaceSubstring(str, symbols[i], symbolCode[i]); 
+	return str;
+}
+
 string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endDoc, bool findOnlyInSubs)
 {
 	string xml = "";
@@ -42,7 +69,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 		launcher.get_snippets(query, docs[i].docId, snippets, snippets_num);
 		for (size_t subNum = 0; subNum < snippets.size(); subNum++)
 		{
-			xml += "\t\t <snippet text=\"" + snippets[subNum].subtitle.first + "\" ";
+			xml += "\t\t <snippet text=\"" + Format(snippets[subNum].subtitle.first) + "\" ";
 			xml += "time=\"" + std::to_string((long long)snippets[subNum].subtitle.second) + "\" ";
 			xml += ">\n";
 
