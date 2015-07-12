@@ -40,13 +40,13 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 		uint32_t snippets_num = 3;
 
 		launcher.get_snippets(query, docs[i].docId, snippets, snippets_num);
-		for (int subNum = 0; subNum < snippets.size(); subNum++)
+		for (size_t subNum = 0; subNum < snippets.size(); subNum++)
 		{
 			xml += "\t\t <snippet text=\"" + snippets[subNum].subtitle.first + "\" ";
 			xml += "time=\"" + std::to_string((long double)snippets[subNum].subtitle.second) + "\" ";
 			xml += "/>\n";
 
-			for (int pos = 0; pos < snippets[subNum].selections.size(); pos++)
+			for (size_t pos = 0; pos < snippets[subNum].selections.size(); pos++)
 			{
 				xml += "\t\t\t <selection start=\"" + std::to_string((long double)snippets[subNum].selections[pos].first) + "\" ";
 				xml += "lenght=\"" + std::to_string((long double)snippets[subNum].selections[pos].second) + "\"/>\n";
@@ -66,7 +66,7 @@ void ParseQuery(string &query, string &toSearch, int &startDoc, int &endDoc, boo
 	int start = 0, end = 0;
 	startDoc = 0; endDoc = 0;
 	
-	for (int i = 0; i < query.length(); i++)
+	for (size_t i = 0; i < query.length(); i++)
 	{
 		if (query[i] == '\"')
 		{
@@ -114,7 +114,7 @@ void ParseQuery(string &query, string &toSearch, int &startDoc, int &endDoc, boo
 		findOnlyInSubs = false;
 }
 
-string Search(int bytes_recv, char *buff, Launcher launcher)
+string Search(int bytes_recv, char *buff)
 {
 	string answer;
 	char * str = (char *)malloc(bytes_recv + 1);
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 
 	const std::string path_to_config = "";
 	const std::string path_to_stopwords = "";
-	Launcher launcher;
+	//Launcher launcher;
 
 	launcher.configure(path_to_config, path_to_stopwords);
 
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 		while ((bytes_recv = recv(client_socket, &buff[0], sizeof(buff), 0))
 			&& bytes_recv != SOCKET_ERROR)
 		{
-			string text = Search(bytes_recv, buff, launcher);
+			string text = Search(bytes_recv, buff);
 
 			send(client_socket, text.c_str(), text.size() * sizeof(char), 0);
 		}
