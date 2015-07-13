@@ -8,6 +8,7 @@ using namespace std;
 using namespace Index;
 
 #define MAX_WINDOW_SIZE 10
+#define MAX_DRAFT_DOCS 200 //MAGIK!!!
 
 void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, size_t zoneId, list< pair< uint16_t , size_t > > &positions )
 {
@@ -19,7 +20,7 @@ void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, s
         index.getFullPosting(entry, &postings_by_zone);
         Posting postings = postings_by_zone[zoneId]; //check it!!!
         
-        list< pair< uint16_t , size_t > >::iterator it_list = positions.begin();
+        list< pair< uint16_t, size_t > >::iterator it_list = positions.begin();
         const uint16_t *entry_pos = postings.begin;
         while( it_list != positions.end() && entry_pos != postings.end )
         {
@@ -141,4 +142,31 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
     sort(it1, it2, comp_subs);
     sort(it2, docid_by_rank.end(), comp_subs);
     std::cout << "FINISHIG RANKING" << std::endl;
+}
+
+double get_draft_rank(InvertIndex &index, const vector<Entry> &entries_by_doc, const vector<double> &idfs)
+{
+    return 0;
+}
+
+bool more_rank(const pair< vector<Entry>, double /*draft_rank*/> &e1 ,const pair< vector<Entry>, double /*draft_rank*/> &e2)
+{
+    return e1.second > e2.second;
+}
+
+void draft_ranking(InvertIndex &index, const vector< vector<Entry> > &entries_by_docs, const vector<double> &idfs, vector< vector<Entry> > &entries_by_doc_res)
+{
+    vector< pair< vector<Entry>, double /*draft_rank*/> > enries_by_docs_with_rank(entries_by_docs.size());
+    
+    for(size_t i = 0; i < entries_by_docs.size(); ++i)
+    {
+        const vector<Entry> &entries_by_doc = entries_by_docs[i];
+        enries_by_docs_with_rank[i].first = entries_by_doc;
+        enries_by_docs_with_rank[i].second = get_draft_rank(index, entries_by_doc, idfs);
+    }
+    sort(enries_by_docs_with_rank.begin(), enries_by_docs_with_rank.end(), more_rank);
+    size_t num = entries_by_docs.size() > MAX_DRAFT_DOCS ? MAX_DRAFT_DOCS : entries_by_docs.size();
+    entries_by_doc_res.resize(num);
+    for(size_t i = 0; i < num; ++i)
+        entries_by_doc_res[i] = enries_by_docs_with_rank[i].first;
 }
