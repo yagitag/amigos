@@ -140,23 +140,24 @@ Config::~Config() {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
-Posting::Posting(std::istream& is, uint64_t seek, uint16_t size) {
-  //uint16_t size;
-  is.seekg(seek, is.beg);
-  //readFrom(is, &size);
-  _data = std::shared_ptr<uint16_t>(new uint16_t[size], std::default_delete<uint16_t[]>());
-  is.read(reinterpret_cast<char*>(_data.get()), size*sizeof(uint16_t));
-  begin = _data.get();
+//Posting::Posting(std::istream& is, uint64_t seek, uint16_t size) {
+//  //uint16_t size;
+//  is.seekg(seek, is.beg);
+//  //readFrom(is, &size);
+//  _data = std::shared_ptr<uint16_t>(new uint16_t[size], std::default_delete<uint16_t[]>());
+//  is.read(reinterpret_cast<char*>(_data.get()), size*sizeof(uint16_t));
+//  begin = _data.get();
+//  end = begin + size;
+//}
+
+
+
+Posting::Posting(const void* src, uint64_t seek, uint16_t size)
+{
+  //begin = reinterpret_cast<const uint16_t*>(static_cast<const char*>(src) + seek);
+  begin = static_cast<const uint16_t*>(src) + seek / sizeof(uint16_t);
   end = begin + size;
 }
-
-
-
-//Posting::Posting(void* src, uint64_t seek, uint16_t size)
-//{
-//  begin = static_cast<uint16_t*>(src) + seek;
-//  end = static_cast<uint16_t*>(src) + seek + size;
-//}
 
 
 
@@ -177,8 +178,9 @@ void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* re
   auto psIt = entry.postingInfo.postingSizes.begin();
   for (size_t i = 0; i < _tZonesCnt; ++i) {
     if (i2mask[i] & entry.postingInfo.inZone) {
-      //Posting np(_src, po * sizeof(uint16_t), *psIt++);
-      Posting np(_ifs, po * sizeof(uint16_t), *psIt++);
+      Posting np(_src, po * sizeof(uint16_t), *psIt++);
+      //std::cout << uint64_t(np.begin) << "\t" << uint64_t(np.end) << std::endl;
+      //Posting np(_ifs, po * sizeof(uint16_t), *psIt++);
       po += (np.end - np.begin); //TODO сделать нормально
       (*res)[i] = np;
     }
@@ -188,21 +190,22 @@ void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* re
 
 
 void PostingStorage::_load(const std::string& path) {
-  //int fd;
-  //struct stat statbuf;
-  //if ( (fd = open(path.c_str(), O_RDONLY)) < 0 ) {
-  //  throw Index::Exception("Cannot open '" + path + "'");
-  //}
-  //if ( fstat(fd, &statbuf) < 0 ) {
-  //  throw Index::Exception("Fstat error while loading posting storage");
-  //}
-  //if ((_src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
-  //  throw Index::Exception("Cannot open '" + path + "'");
-  //}
-  _ifs.open(path, std::ios::in | std::ios::binary);
-  if (!_ifs.is_open()) {
+  int fd;
+  struct stat statbuf;
+  if ( (fd = open(path.c_str(), O_RDONLY)) < 0 ) {
     throw Index::Exception("Cannot open '" + path + "'");
   }
+  if ( fstat(fd, &statbuf) < 0 ) {
+    throw Index::Exception("Fstat error while loading posting storage");
+  }
+  if ((_src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+    throw Index::Exception("Cannot open '" + path + "'");
+  }
+  //std::cout << "BEGIN: " << uint64_t(_src) << "\t" << "END: " <<  uint64_t(static_cast<uint8_t*>(_src) + statbuf.st_size) << std::endl;
+  //_ifs.open(path, std::ios::in | std::ios::binary);
+  //if (!_ifs.is_open()) {
+  //  throw Index::Exception("Cannot open '" + path + "'");
+  //}
 }
 
 

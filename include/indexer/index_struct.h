@@ -79,8 +79,8 @@ namespace Index {
   struct Posting
   {
     Posting() : begin(0), end(0) { }
-    //Posting(void* src, uint64_t seek, uint16_t size);
-    Posting(std::istream& is, uint64_t seek, uint16_t size);
+    Posting(const void* src, uint64_t seek, uint16_t size);
+    //Posting(std::istream& is, uint64_t seek, uint16_t size);
     const uint16_t* begin;
     const uint16_t* end;
     private:
@@ -102,8 +102,8 @@ namespace Index {
       PostingStorage() { }
       void _load(const std::string& path);
 
-      std::ifstream _ifs;
-      //void *_src;
+      //std::ifstream _ifs;
+      void *_src;
       uint8_t _tZonesCnt;
       //uint32_t _commonSize;
       //std::vector<uint16_t> _postingSizes;
