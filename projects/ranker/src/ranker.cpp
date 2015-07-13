@@ -154,17 +154,20 @@ double Ranker::get_draft_rank(InvertIndex &index, const vector<Entry> &entries_b
     std::vector<double> zonesTf;
     for (size_t i = 0; i < entries_by_doc.size(); ++i)
     {
+      std::cout << "idf: " << idfs[i] << std::endl;
       index.getZonesTf(entries_by_doc[i], zonesTf);
       rank += idfs[i] * (zonesTf[TITLE] + zonesTf[DESC] * 0.2 + zonesTf[SUB] * 5);
     }
+    std::cout << "rank after tfs: " << rank << std::endl;
     if (!entries_by_doc.empty())
     {
       auto& entry = entries_by_doc[0];
       uint32_t dislikes_cnt = index.getNZone(entry, Ranker::DISLIKES);
-      double views_koef = (dislikes_cnt) ? std::log(static_cast<double>(index.getNZone(entry, Ranker::LIKES) / dislikes_cnt) + 1.) : 1.;
-      rank += index.getNZone(entry, Ranker::VIEWS_CNT) / max_nzones_vals[Ranker::VIEWS_CNT] * views_koef;
-      rank += (index.getNZone(entry, Ranker::VTYPE) == Ranker::Q720) ? 1 : 0.5;
+      //double views_koef = (dislikes_cnt) ? std::log(static_cast<double>(index.getNZone(entry, Ranker::LIKES) / dislikes_cnt) + 1.) : 1.;
+      rank += 0.1 * index.getNZone(entry, Ranker::VIEWS_CNT) / max_nzones_vals[Ranker::VIEWS_CNT]; //* views_koef;
+      rank += 0.01 * ((index.getNZone(entry, Ranker::VTYPE) == Ranker::Q720) ? 1 : 0.5);
     }
+    std::cout << "rank: " << rank << std::endl;
     return rank;
 }
 

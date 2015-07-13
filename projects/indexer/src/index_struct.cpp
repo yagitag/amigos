@@ -362,7 +362,7 @@ void InvertIndex::getZonesTf(const Entry& entry, std::vector<double>& tfVec) {
   size_t curZone = 0;
   for (size_t zi = 0; zi < _pConfig->textZones.size(); ++zi) {
     if (i2mask[zi] & entry.postingInfo.inZone) {
-      tfVec.push_back(entry.postingInfo.postingSizes[curZone] / _pDocStore->getTZoneWCnt(entry.docIdOffset, zi));
+      tfVec.push_back(static_cast<double>(entry.postingInfo.postingSizes[curZone]) / _pDocStore->getTZoneWCnt(entry.docIdOffset, zi));
     } else {
       tfVec.push_back(0.);
     }
