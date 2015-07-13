@@ -12,7 +12,7 @@ void Searcher::configure( const string& path_to_config )
     index.configure( path_to_config );
 }
 
-void Searcher::search( const vector< string > &tokens, std::vector<Document> &docs )
+void Searcher::search( const vector< string > &tokens, std::vector<uint32_t> &docsId )
 {
     vector<double> tokIdfs;
     // это вектор векторов Энтрисов!
@@ -37,6 +37,9 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
     ranker.get_list_of_sorted_docid_by_rank(index, entries_by_doc_draft, docid_by_rank); // YO
 
     for ( auto &docid_with_rank : docid_by_rank )
+        docsId.push_back(docid_with_rank.first);
+/*
+    for ( auto &docid_with_rank : docid_by_rank )
     {
         RawDoc raw_doc;
         index.getRawDoc( docid_with_rank.first, &raw_doc );
@@ -44,17 +47,11 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
         doc.videoId = raw_doc.videoId;
         doc.title = raw_doc.title;
         doc.docId = docid_with_rank.first;
-/*
-        std::vector< std::pair<std::string, double> > phrases;
-        raw_doc.getPhrases( phrases );
-        for( size_t i = 0; i < 3 && i < phrases.size(); ++i )
-        {
-            doc.subtitles.push_back(phrases[i]);
-        }
-*/
         docs.push_back(doc);
     }
+    */
 
+/*
     for( auto &docid_with_rank : docid_by_rank )
     {
         RawDoc doc;
@@ -71,6 +68,7 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
         std::cerr << doc.videoId << std::endl;  
         std::cerr << "____________" << std::endl;        
     }
+    */
 }
 
 typedef std::pair< uint32_t /*select_start_pos*/, uint32_t /*select_length*/ > Selection_t;
@@ -175,4 +173,13 @@ void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &t
         snippet.selections.assign(all_selections_with_stat[i].first.first.begin(), all_selections_with_stat[i].first.first.end());
         snippets.push_back(snippet);
     }
+}
+
+void Searcher::get_doc( uint32_t docId, Document &doc )
+{
+    Index::RawDoc raw_doc;
+    index.getRawDoc( docId, &raw_doc );
+    doc.videoId = raw_doc.videoId;
+    doc.title = raw_doc.title;
+    doc.docId = docId;
 }

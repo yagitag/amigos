@@ -47,17 +47,19 @@ string Format(string str)
 		return str;
 }
 
-string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endDoc, bool findOnlyInSubs)
+string MakeXml(std::vector<uint32_t> &docsId, string query, int startDoc, int endDoc, bool findOnlyInSubs)
 {
 	string xml = "";
 	xml += "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n";
-	std::string count = std::to_string((long long)docs.size());
+	std::string count = std::to_string((long long)docsId.size());
 	xml += "<results totalResultsCount = \"" + count + "\">\n";
 
-	for (int i = startDoc; i < startDoc+endDoc && i < docs.size(); i++)
+	for (int i = startDoc; i < startDoc+endDoc && i < docsId.size(); i++)
 	{
-		xml += "\t <result link=\"https://www.youtube.com/watch?v=" + docs[i].videoId + "\" ";
-		xml += "title=\"" + Format(docs[i].title) + "\" ";
+        Document doc;
+        launcher.get_doc(docsId[i], doc);
+		xml += "\t <result link=\"https://www.youtube.com/watch?v=" + doc.videoId + "\" ";
+		xml += "title=\"" + Format(doc.title) + "\" ";
 		xml += "description=\"\" ";
 		//xml += "selectionStart=\"0\" selectionLength=\"0\" ";
 		xml += "> \n";
@@ -65,7 +67,7 @@ string MakeXml(std::vector<Document> &docs, string query, int startDoc, int endD
 		std::vector< Snippet > snippets;
 		uint32_t snippets_num = 3;
 
-		launcher.get_snippets(query, docs[i].docId, snippets, snippets_num);
+		launcher.get_snippets(query, doc.docId, snippets, snippets_num);
 		for (size_t subNum = 0; subNum < snippets.size(); subNum++)
 		{
 			xml += "\t\t <snippet text=\"" + Format(snippets[subNum].subtitle.first) + "\" ";
@@ -168,9 +170,10 @@ string Search(int bytes_recv, char *buff)
 	ParseQuery(query, toSearch, startDoc, endDoc, findOnlyInSubs);
 
 
-	std::vector<Document> docs;
-	launcher.launch_searcher(toSearch, docs);
-	answer = MakeXml(docs, toSearch, startDoc, endDoc, findOnlyInSubs);
+	//std::vector<Document> docs;
+	std::vector<uint32_t> docsId;
+	launcher.launch_searcher(toSearch, docsId);
+	answer = MakeXml(docsId, toSearch, startDoc, endDoc, findOnlyInSubs);
 
 	free(str);
 	return answer;

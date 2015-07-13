@@ -13,7 +13,7 @@ void Launcher::configure( const string& path_to_config, const string& path_to_st
         bi_gramer.configure ( path_to_stopwords );
 }
 
-void Launcher::launch_searcher( std::string &query, std::vector<Document> &docs )
+void Launcher::launch_searcher( std::string &query, std::vector<uint32_t> &docsId )
 {
     vector< string > norm_words;
     terminate2vec( query, norm_words );
@@ -25,7 +25,7 @@ void Launcher::launch_searcher( std::string &query, std::vector<Document> &docs 
     {
         std::cout << "TOKEN: " << token << std::endl;
     }
-    searcher.search( tokens, docs );
+    searcher.search( tokens, docsId );
 }
 
 void Launcher::get_snippets( std::string &query, uint32_t docId, std::vector< Snippet > &snippets, uint32_t snippets_num )
@@ -34,4 +34,16 @@ void Launcher::get_snippets( std::string &query, uint32_t docId, std::vector< Sn
     terminate2vec( query, norm_words, false );
     
     searcher.get_snippets( docId, norm_words, snippets, snippets_num);
+}
+
+void Launcher::get_doc( uint32_t docId, Document &doc )
+{
+    searcher.get_doc(docId, doc);
+    /*
+    Index::RawDoc raw_doc;
+    index.getRawDoc( docId, &raw_doc );
+    doc.videoId = raw_doc.videoId;
+    doc.title = raw_doc.title;
+    doc.docId = docid_with_rank.first;
+    */
 }

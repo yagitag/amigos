@@ -28,6 +28,8 @@ public:
     Searcher() { };
     void configure( const std::string &path_to_config );
     
-    void search( const std::vector< std::string > &tokens, std::vector<Document> &docs_output );
+    //void search( const std::vector< std::string > &tokens, std::vector<Document> &docs_output );
+    void search( const std::vector< std::string > &tokens, std::vector<uint32_t> &docsId_output );
     void get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > &snippets, uint32_t snippets_num );
+    void get_doc( uint32_t docId, Document &doc );
 };

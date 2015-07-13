@@ -23,8 +23,9 @@ int main(int argc, char *argv[])
         getline(cin, query);
 
         vector<Document> docs;
+        vector<uint32_t> docsId;
         //string query = string(argv[3]);
-        launcher.launch_searcher( query, docs );
+        launcher.launch_searcher( query, docsId );
 
         for(size_t i = 0; i < 10; ++i)
         {
