@@ -1,7 +1,7 @@
 #include "../../../include/ranker/ranker.hpp"
 #include "../../../include/indexer/index_struct.h"
-#include <utility> 
 #include <set> 
+#include <utility> 
 #include <algorithm>
 
 using namespace std;
@@ -144,9 +144,15 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
     std::cout << "FINISHIG RANKING" << std::endl;
 }
 
-double get_draft_rank(InvertIndex &index, const vector<Entry> &entries_by_doc, const vector<double> &idfs)
+double Ranker::get_draft_rank(InvertIndex &index, const vector<Entry> &entries_by_doc, const vector<double> &idfs)
 {
-    return 0;
+    double rank = 0.;
+    std::vector<double> zonesTf;
+    for (size_t i = 0; i < entries_by_doc.size(); ++i) {
+      index.getZonesTf(entries_by_doc[i], zonesTf);
+      rank += idfs[i] * (zonesTf[TITLE] + zonesTf[DESC] * 0.2 + zonesTf[SUB] * 5);
+    }
+    return rank;
 }
 
 bool more_rank(const pair< vector<Entry>, double /*draft_rank*/> &e1 ,const pair< vector<Entry>, double /*draft_rank*/> &e2)
@@ -154,7 +160,7 @@ bool more_rank(const pair< vector<Entry>, double /*draft_rank*/> &e1 ,const pair
     return e1.second > e2.second;
 }
 
-void draft_ranking(InvertIndex &index, const vector< vector<Entry> > &entries_by_docs, const vector<double> &idfs, vector< vector<Entry> > &entries_by_doc_res)
+void Ranker::draft_ranking(InvertIndex &index, const vector< vector<Entry> > &entries_by_docs, const vector<double> &idfs, vector< vector<Entry> > &entries_by_doc_res)
 {
     vector< pair< vector<Entry>, double /*draft_rank*/> > enries_by_docs_with_rank(entries_by_docs.size());
     

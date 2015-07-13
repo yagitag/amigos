@@ -14,12 +14,14 @@ void Searcher::configure( const string& path_to_config )
 
 void Searcher::search( const vector< string > &tokens, std::vector<Document> &docs )
 {
+    vector<double> tokIdfs;
     // это вектор векторов Энтрисов!
     vector< vector<Entry> > entries_by_token(tokens.size());
     for (size_t i = 0; i < tokens.size(); ++i )
     {
         uint32_t tknId = index.findTknIdx( tokens[i] );
         if ( tknId == Index::InvertIndex::unexistingToken ) return;
+        tokIdfs.push_back(index.getIDF(tknId));
         index.getEntries(tknId, &(entries_by_token[i]));
     }
 
@@ -29,6 +31,8 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
     std::cout << "entries_by_token: "  << entries_by_token.size() << std::endl;
     std::cout << "entries_by_doc: "  << entries_by_doc.size() << std::endl;
 
+    vector<vector<Entry>> entries_by_doc_draft;
+    ranker.draft_ranking(index, entries_by_doc, tokIdfs, entries_by_doc_draft);
     vector< pair< uint32_t, pair< float, float > > > docid_by_rank;
     ranker.get_list_of_sorted_docid_by_rank(index, entries_by_doc, docid_by_rank); // YO
 

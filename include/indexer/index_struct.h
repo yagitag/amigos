@@ -177,7 +177,6 @@ namespace Index {
       uint32_t getNZone(const Entry& entry, uint8_t nZoneId);
       void getEntries(uint32_t tknIdx, std::vector<Entry>* res);
       double getIDF(uint32_t tknIdx);
-      double getIDF(Index::Entry tknIdx);
       //double getTF(const Entry& entry, uint8_t tZoneId);
       void getZonesTf(const Entry& entry, std::vector<double>& tfVec);
       Posting getPosting(const Entry& entry, uint8_t tZoneId);
