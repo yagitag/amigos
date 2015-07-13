@@ -150,6 +150,11 @@ void toLower( std::vector<Phrase_t> &phrases )
     }
 }
 
+bool less_pos(const Snippet &s1, const Snippet &s2)
+{
+    return s1.subtitle.second < s2.subtitle.second;
+}
+
 void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &tokens, std::vector< Snippet > &snippets, uint32_t snippets_num )
 {
     RawDoc raw_doc;
@@ -173,6 +178,7 @@ void Searcher::get_snippets( uint32_t docId, const std::vector< std::string > &t
         snippet.selections.assign(all_selections_with_stat[i].first.first.begin(), all_selections_with_stat[i].first.first.end());
         snippets.push_back(snippet);
     }
+    std::sort(snippets.begin(), snippets.end(), less_pos);
 }
 
 void Searcher::get_doc( uint32_t docId, Document &doc )
