@@ -5,6 +5,8 @@
 using namespace std;
 using namespace Common;
 
+const uint32_t MAX_TOKEN_CNT = 10;
+
 void Launcher::configure( const string& path_to_config, const string& path_to_stopwords )
 {
     searcher.configure( path_to_config );
@@ -17,6 +19,7 @@ void Launcher::launch_searcher( std::string &query, std::vector<uint32_t> &docsI
 {
     vector< string > norm_words;
     terminate2vec( query, norm_words );
+    if (norm_words.size() > MAX_TOKEN_CNT) norm_words.resize(MAX_TOKEN_CNT);
 
     vector< string > tokens;
     bi_gramer.bigram2vec( norm_words, tokens );
