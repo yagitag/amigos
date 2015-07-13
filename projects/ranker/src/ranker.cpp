@@ -126,7 +126,6 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
   std::cout << "START RANKING" << std::endl;
     for( size_t i = 0; i < entries_by_doc.size(); ++i )
     {
-        std::cerr << i << std::endl;
         const vector<Entry> &entries = entries_by_doc[i];
         if( entries.empty() ) continue; // can not be ?
         pair< float, float > doc_rank = get_doc_rank( index, entries );
@@ -135,7 +134,6 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
 
     }
     sort(docid_by_rank.begin(), docid_by_rank.end(), comp_title);
-    std::cout << "SORT BY TITLE" << std::endl;
     auto it1 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 5000, title_only_more);
     auto it2 = lower_bound(docid_by_rank.begin(), docid_by_rank.end(), 500, title_only_more);
     sort(docid_by_rank.begin(), it1, comp_subs);
@@ -144,13 +142,23 @@ void Ranker::get_list_of_sorted_docid_by_rank( InvertIndex &index, vector< vecto
     std::cout << "FINISHIG RANKING" << std::endl;
 }
 
-double Ranker::get_draft_rank(InvertIndex &index, const vector<Entry> &entries_by_doc, const vector<double> &idfs)
+
+double Ranker::get_draft_rank(InvertIndex &index, const vector<Entry> &entries_by_doc, const vector<double> &idfs, const vector<uint32_t> max_nzones_vals)
 {
     double rank = 0.;
     std::vector<double> zonesTf;
-    for (size_t i = 0; i < entries_by_doc.size(); ++i) {
+    for (size_t i = 0; i < entries_by_doc.size(); ++i)
+    {
       index.getZonesTf(entries_by_doc[i], zonesTf);
       rank += idfs[i] * (zonesTf[TITLE] + zonesTf[DESC] * 0.2 + zonesTf[SUB] * 5);
+    }
+    if (!entries_by_doc.empty())
+    {
+      auto& entry = entries_by_doc[0];
+      uint32_t dislikes_cnt = index.getNZone(entry, Ranker::DISLIKES);
+      double views_koef = (dislikes_cnt) ? std::log(static_cast<double>(index.getNZone(entry, Ranker::LIKES) / dislikes_cnt) + 1.) : 1.;
+      rank += index.getNZone(entry, Ranker::VIEWS_CNT) / max_nzones_vals[Ranker::VIEWS_CNT] * views_koef;
+      rank += (index.getNZone(entry, Ranker::VTYPE) == Ranker::Q720) ? 1 : 0.5;
     }
     return rank;
 }
@@ -160,15 +168,29 @@ bool more_rank(const pair< vector<Entry>, double /*draft_rank*/> &e1 ,const pair
     return e1.second > e2.second;
 }
 
+
+uint32_t getMaxNZone(InvertIndex& index, const vector< vector<Entry> >& entries_by_doc, Ranker::NumZone nzone)
+{
+  uint32_t max = 0;
+  for (size_t i = 0; i < entries_by_doc.size(); ++i)
+  {
+    max = std::max(index.getNZone(entries_by_doc[i].front(), nzone), max); // все entry сгруппированы по документам, поэтому берем первый подходящий
+  }
+  return max;
+}
+
+
 void Ranker::draft_ranking(InvertIndex &index, const vector< vector<Entry> > &entries_by_docs, const vector<double> &idfs, vector< vector<Entry> > &entries_by_doc_res)
 {
+    vector<uint32_t> max_nzones_vals(numZonesCnt);
+    max_nzones_vals[VIEWS_CNT] = getMaxNZone(index, entries_by_docs, VIEWS_CNT);
+
     vector< pair< vector<Entry>, double /*draft_rank*/> > enries_by_docs_with_rank(entries_by_docs.size());
-    
     for(size_t i = 0; i < entries_by_docs.size(); ++i)
     {
         const vector<Entry> &entries_by_doc = entries_by_docs[i];
         enries_by_docs_with_rank[i].first = entries_by_doc;
-        enries_by_docs_with_rank[i].second = get_draft_rank(index, entries_by_doc, idfs);
+        enries_by_docs_with_rank[i].second = get_draft_rank(index, entries_by_doc, idfs, max_nzones_vals);
     }
     sort(enries_by_docs_with_rank.begin(), enries_by_docs_with_rank.end(), more_rank);
     size_t num = entries_by_docs.size() > MAX_DRAFT_DOCS ? MAX_DRAFT_DOCS : entries_by_docs.size();
