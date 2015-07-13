@@ -2,6 +2,7 @@
 
 #include <string>
 #include <fstream>
+#include <iostream>
 #include <boost/algorithm/string.hpp>
 #include "../../../include/common/normalizer.hpp"
 #include "../../../include/common/tokenizer.hpp"

@@ -13,7 +13,7 @@
 #include <wchar.h>
 #include <cstring>
 
-#define MY_PORT    5000
+#define MY_PORT    6000
 
 //сервер
 const int SOCKET_ERROR = -1;
