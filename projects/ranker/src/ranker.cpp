@@ -10,15 +10,15 @@ using namespace Index;
 #define MAX_WINDOW_SIZE 10
 #define MAX_DRAFT_DOCS 200 //MAGIK!!!
 
-void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, size_t zoneId, list< pair< uint16_t , size_t > > &positions )
+void get_positions_for_zone( InvertIndex &index, const vector<Entry> &entries, size_t zoneId, list< pair< uint16_t , size_t > > &positions, std::vector< std::vector<Posting> > &postings_by_entries )
 {
     
     for( size_t i = 0; i < entries.size(); ++i )
     {
         const Entry &entry = entries[i];
-        std::vector<Posting> postings_by_zone;
-        index.getFullPosting(entry, &postings_by_zone);
-        Posting postings = postings_by_zone[zoneId]; //check it!!!
+        //std::vector<Posting> postings_by_zone;
+        //index.getFullPosting(entry, &postings_by_zone);
+        Posting &postings = postings_by_entries[i][zoneId]; //check it!!!
         
         list< pair< uint16_t, size_t > >::iterator it_list = positions.begin();
         const uint16_t *entry_pos = postings.begin;
@@ -93,14 +93,19 @@ float get_rank(list< pair< uint16_t , size_t > > &all_pos, size_t window_size)
 
 pair< float, float > get_doc_rank( InvertIndex &index, const vector<Entry> &entries )
 {
+    std::vector<std::vector<Posting> > postings_by_entries(entries.size());
+    for(size_t i = 0; i < entries.size(); ++i)
+    {
+        index.getFullPosting(entries[i], &postings_by_entries[i]);
+    }
     // для каждой зоны собираем упорядоченный список пар позиция-энтрис
     list< pair< uint16_t , size_t > > all_pos_by_entries_title;
-    get_positions_for_zone( index, entries, 0, all_pos_by_entries_title );
+    get_positions_for_zone(index, entries, 0, all_pos_by_entries_title, postings_by_entries);
     float rank_title = get_rank(all_pos_by_entries_title, entries.size());
 //    list< pair< uint16_t , size_t > > all_pos_by_entries_disc;
 //    get_positions_for_zone( index, entries, 1, all_pos_by_entries_disc );
     list< pair< uint16_t , size_t > > all_pos_by_entries_subs;
-    get_positions_for_zone( index, entries, 2, all_pos_by_entries_subs );
+    get_positions_for_zone(index, entries, 2, all_pos_by_entries_subs, postings_by_entries);
     float rank_subs = get_rank(all_pos_by_entries_subs, entries.size());
 
     return std::make_pair( rank_title*5, rank_subs ); // MORE MAGIC !!!!!
