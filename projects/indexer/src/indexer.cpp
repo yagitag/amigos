@@ -126,15 +126,10 @@ DynPostingStore::DynPostingStore(const Index::Config& config) :
   _commonSize = 0;
   _tZonesCnt = config.textZones.size();
   std::cout << "Init posting storage..." << std::endl;
-  try {
-    _load(_path);
-  }
-  catch (Index::Exception& e) {
-    std::cout << "Catch the exception '" << e.what() << "' while loading posting storage!" << std::endl;
-    std::cout << "Creating a new one." << std::endl;
-  }
-  _ifs.close();
   _ofs.open(_path, std::ios::app | std::ios::binary);
+  if (!_ofs.is_open()) {
+    std::cout << "Cannot open '" << _path << "'" << std::endl;
+  }
 }
 
 

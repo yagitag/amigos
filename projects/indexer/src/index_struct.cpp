@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+
 
 
 using namespace Index;
@@ -147,6 +151,16 @@ Posting::Posting(std::istream& is, uint64_t seek, uint16_t size) {
 }
 
 
+
+//Posting::Posting(void* src, uint64_t seek, uint16_t size)
+//{
+//  begin = static_cast<uint16_t*>(src) + seek;
+//  end = static_cast<uint16_t*>(src) + seek + size;
+//}
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -163,6 +177,7 @@ void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* re
   auto psIt = entry.postingInfo.postingSizes.begin();
   for (size_t i = 0; i < _tZonesCnt; ++i) {
     if (i2mask[i] & entry.postingInfo.inZone) {
+      //Posting np(_src, po * sizeof(uint16_t), *psIt++);
       Posting np(_ifs, po * sizeof(uint16_t), *psIt++);
       po += (np.end - np.begin); //TODO сделать нормально
       (*res)[i] = np;
@@ -173,24 +188,22 @@ void PostingStorage::getFullPosting(const Entry& entry, std::vector<Posting>* re
 
 
 void PostingStorage::_load(const std::string& path) {
+  //int fd;
+  //struct stat statbuf;
+  //if ( (fd = open(path.c_str(), O_RDONLY)) < 0 ) {
+  //  throw Index::Exception("Cannot open '" + path + "'");
+  //}
+  //if ( fstat(fd, &statbuf) < 0 ) {
+  //  throw Index::Exception("Fstat error while loading posting storage");
+  //}
+  //if ((_src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+  //  throw Index::Exception("Cannot open '" + path + "'");
+  //}
   _ifs.open(path, std::ios::in | std::ios::binary);
-  if (!_ifs.is_open()) { 
+  if (!_ifs.is_open()) {
     throw Index::Exception("Cannot open '" + path + "'");
   }
-  //_commonSize = readFromEnd(_ifs);
-  //_ifs.seekg(_commonSize * sizeof(uint16_t), _ifs.beg);
-  //_ifs >> _postingSizes;
-  //_ifs.close();
-  //_ofs.open(path, std::ios::out | std::ios::binary);
-  //_ifs.read(reinterpret_cast<char*>(&_postingSizes[0]), size*sizeof(uint32_t));
 }
-
-
-
-//std::istream& operator>>(std::istream& ifs, Index::PostingStorage& ps) {
-//  ifs >> ps._postingStore;
-//  return ifs;
-//}
 
 
 
@@ -474,7 +487,7 @@ bool compareSizes(const std::vector<Entry>& v1, const std::vector<Entry>& v2) {
 void Index::intersectEntries(std::vector< std::vector<Entry> >& input, std::vector< std::vector<Entry> >* output) {
   if (input.empty()) return;
   size_t step = 100;
-  std::sort(input.begin(), input.end(), compareSizes);
+  //std::sort(input.begin(), input.end(), compareSizes); //TODO вынести из функции
   output->push_back(std::vector<Entry>());
   output->resize(input.front().size());
   for (size_t i = 0; i < input.front().size(); ++i) {
@@ -537,7 +550,7 @@ void DocDatabase::open(const std::string& path) {
 
 
 void readStr(std::istream& is, std::string& str) {
-  uint16_t size;
+  uint32_t size;
   readFrom(is, &size);
   str.resize(size);
   is.read(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
@@ -546,7 +559,7 @@ void readStr(std::istream& is, std::string& str) {
 
 
 void writeStr(std::ostream& os, std::string& str) {
-  writeTo(os, static_cast<uint16_t>(str.size()));
+  writeTo(os, static_cast<uint32_t>(str.size()));
   os.write(reinterpret_cast<char*>(&str[0]), str.size()*sizeof(char));
 }
 
