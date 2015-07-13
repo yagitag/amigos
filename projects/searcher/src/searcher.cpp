@@ -34,7 +34,7 @@ void Searcher::search( const vector< string > &tokens, std::vector<Document> &do
     vector<vector<Entry>> entries_by_doc_draft;
     ranker.draft_ranking(index, entries_by_doc, tokIdfs, entries_by_doc_draft);
     vector< pair< uint32_t, pair< float, float > > > docid_by_rank;
-    ranker.get_list_of_sorted_docid_by_rank(index, entries_by_doc, docid_by_rank); // YO
+    ranker.get_list_of_sorted_docid_by_rank(index, entries_by_doc_draft, docid_by_rank); // YO
 
     for ( auto &docid_with_rank : docid_by_rank )
     {
